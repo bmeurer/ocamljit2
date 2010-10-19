@@ -820,7 +820,6 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
       jx86_movq_reg_membase(cp, JX86_RSI, JX86_R14, sp);
       jx86_shrq_reg_imm(cp, JX86_RSI, 1);
       jx86_movb_reg_memindex(cp, JX86_AL, JX86_RAX, 0, JX86_RSI, 0);
-    movzxlb_shl1_or1_pop1:
       jx86_movzxlb_reg_reg(cp, JX86_EAX, JX86_AL);
     shl1_or1_pop1:
       jx86_shlq_reg_imm(cp, JX86_RAX, 1);
@@ -1091,8 +1090,9 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
         jx86_ucomisd_xmm_membase(cp, JX86_XMM0, JX86_RSI, 0);
         jx86_sete_reg(cp, JX86_AL);
         jx86_setnp_reg(cp, JX86_DL);
-        jx86_andl_reg_reg(cp, JX86_EAX, JX86_EDX);
-        goto movzxlb_shl1_or1_pop1;
+        jx86_andb_reg_reg(cp, JX86_AL, JX86_DL);
+        op = JX86_SETNZ;
+        goto cmpint2;
       }
       else if (addr == &caml_neq_float) {
         jx86_movq_reg_membase(cp, JX86_RSI, JX86_R14, sp);
@@ -1100,8 +1100,9 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
         jx86_ucomisd_xmm_membase(cp, JX86_XMM0, JX86_RSI, 0);
         jx86_setne_reg(cp, JX86_AL);
         jx86_setp_reg(cp, JX86_DL);
-        jx86_orl_reg_reg(cp, JX86_EAX, JX86_EDX);
-        goto movzxlb_shl1_or1_pop1;
+        jx86_orb_reg_reg(cp, JX86_AL, JX86_DL);
+        op = JX86_SETNZ;
+        goto cmpint2;
       }
       else if (addr == &caml_le_float) {
         op = JX86_SETAE;
@@ -1109,7 +1110,7 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
         jx86_movq_reg_membase(cp, JX86_RSI, JX86_R14, sp);
         jx86_movlpd_xmm_membase(cp, JX86_XMM0, JX86_RSI, 0);
         jx86_ucomisd_xmm_membase(cp, JX86_XMM0, JX86_RAX, 0);
-        goto setcc_shl1_or1_pop1;
+        goto cmpint1;
       }
       else if (addr == &caml_lt_float) {
         op = JX86_SETA;
@@ -1121,7 +1122,7 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
         jx86_movq_reg_membase(cp, JX86_RSI, JX86_R14, sp);
         jx86_movlpd_xmm_membase(cp, JX86_XMM0, JX86_RAX, 0);
         jx86_ucomisd_xmm_membase(cp, JX86_XMM0, JX86_RSI, 0);
-        goto setcc_shl1_or1_pop1;
+        goto cmpint1;
       }
       else if (addr == &caml_gt_float) {
         op = JX86_SETA;
@@ -1313,10 +1314,24 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
       op = JX86_SETE;
     cmpint:
       jx86_cmpq_reg_membase(cp, JX86_RAX, JX86_R14, sp);
-    setcc_shl1_or1_pop1:
+    cmpint1:
       jx86_setcc_reg(cp, op, JX86_AL);
+    cmpint2:
       jx86_movzxlb_reg_reg(cp, JX86_EAX, JX86_AL);
-      goto shl1_or1_pop1;
+      if (*pc == BRANCHIF || *pc == BRANCHIFNOT) {
+        /* leal 1(, %eax, 2), %eax */
+        jx86_emit_uint8((cp), 0x8d);
+        jx86_emit_address_byte((cp), 0, JX86_EAX, 4);
+        jx86_emit_address_byte((cp), 1, JX86_EAX, 5);
+        jx86_emit_int32((cp), 1);
+        op = (op + JX86_JA) - JX86_SETA;
+        if (*pc++ == BRANCHIFNOT)
+          op = op ^ 1;
+        sp += 8;
+        goto branchif1;
+      }
+      else
+        goto shl1_or1_pop1;
     case NEQ:
       op = JX86_SETNE;
       goto cmpint;

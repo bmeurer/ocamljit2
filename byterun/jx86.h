@@ -1,3 +1,19 @@
+/***********************************************************************/
+/*                                                                     */
+/*                           Objective Caml                            */
+/*                                                                     */
+/*            Benedikt Meurer, University of Siegen                    */
+/*                                                                     */
+/*  Copyright 2010 Department of Compiler Construction and Software    */
+/*  Analysis, University of Siegen.  All rights reserved.  This file   */
+/*  is distributed under the terms of the GNU Library General Public   */
+/*  License, with the special exception on linking described in file   */
+/*  ../LICENSE.                                                        */
+/*                                                                     */
+/***********************************************************************/
+
+/* $Id$ */
+
 #ifndef CAML_JX86_H
 #define CAML_JX86_H
 

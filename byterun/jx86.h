@@ -136,6 +136,39 @@ typedef enum
 # define JX86_REG_CODE(reg) ((jx86_reg_t) (reg))
 #endif
 
+/* SSE2 registers
+ * --------------
+ */
+typedef enum
+{
+  JX86_XMM0  =  0,
+  JX86_XMM1  =  1,
+  JX86_XMM2  =  2,
+  JX86_XMM3  =  3,
+  JX86_XMM4  =  4,
+  JX86_XMM5  =  5,
+  JX86_XMM6  =  6,
+  JX86_XMM7  =  7,
+#ifdef JX86_64
+  JX86_XMM8  =  8,
+  JX86_XMM9  =  9,
+  JX86_XMM10 = 10,
+  JX86_XMM11 = 11,
+  JX86_XMM12 = 12,
+  JX86_XMM13 = 13,
+  JX86_XMM14 = 14,
+  JX86_XMM15 = 15
+#endif /* JX86_64 */
+} jx86_xmm_t;
+
+#ifdef JX86_64
+# define JX86_IS_XMM(xmm)   ((jx86_xmm_t) (reg) >= JX86_XMM0 && (jx86_xmm_t) (reg) <= JX86_XMM15)
+# define JX86_XMM_CODE(xmm) ((jx86_xmm_t) ((reg) & 0x07))
+#else
+# define JX86_IS_XMM(xmm)   ((jx86_xmm_t) (reg) >= JX86_XMM0 && (jx86_xmm_t) (reg) <= JX86_XMM7)
+# define JX86_XMM_CODE(xmm) ((jx86_xmm_t) (reg))
+#endif
+  
 
 /* Integer condition codes
  * -----------------------
@@ -1842,5 +1875,108 @@ typedef enum
 # define jx86_testq_reg_imm(cp, dreg, simm)           jx86_test_reg_imm((cp), (dreg), (simm), 8)
 # define jx86_testq_reg_reg(cp, dreg, sreg)           jx86_test_reg_reg((cp), (dreg), (sreg), 8)
 #endif /* JX86_64 */
+
+
+/* SSE instructions
+ * ----------------
+ */
+
+#define jx86_sse_op2_membase_xmm(cp, op1, op2, breg, disp, sxmm)        \
+  do {                                                                  \
+    const jx86_reg_t _breg_ = (const jx86_reg_t) (breg);                \
+    const jx86_int32_t _disp_ = (const jx86_int32_t) (disp);            \
+    const jx86_xmm_t _sxmm_ = (const jx86_xmm_t) (sxmm);                \
+    jx86_emit_rex((cp), 0, _sxmm_, 0, _breg_);                          \
+    jx86_emit_uint16((cp), ((op2) << 8) | (op1));                       \
+    jx86_emit_membase((cp), _sxmm_, _breg_, _disp_);                    \
+  } while (0)
+
+#define jx86_sse_op2_xmm_membase(cp, op1, op2, dxmm, breg, disp)        \
+  do {                                                                  \
+    const jx86_xmm_t _dxmm_ = (const jx86_xmm_t) (dxmm);                \
+    const jx86_reg_t _breg_ = (const jx86_reg_t) (breg);                \
+    const jx86_int32_t _disp_ = (const jx86_int32_t) (disp);            \
+    jx86_emit_rex((cp), 0, _dxmm_, 0, _breg_);                          \
+    jx86_emit_uint16((cp), ((op2) << 8) | (op1));                       \
+    jx86_emit_membase((cp), _dxmm_, _breg_, _disp_);                    \
+  } while (0)
+
+#define jx86_sse_op2_xmm_xmm(cp, op1, op2, dxmm, sxmm)              \
+  do {                                                              \
+    const jx86_xmm_t _dxmm_ = (const jx86_xmm_t) (dxmm);            \
+    const jx86_xmm_t _sxmm_ = (const jx86_xmm_t) (sxmm);            \
+    jx86_emit_rex((cp), 0, _dxmm_, 0, _sxmm_);                      \
+    jx86_emit_uint16((cp), ((op2) << 8) | (op1));                   \
+    jx86_emit_reg((cp), _dxmm_, _sxmm_);                            \
+  } while (0)
+
+#define jx86_sse_op3_membase_xmm(cp, op1, op2, op3, breg, disp, sxmm)   \
+  do {                                                                  \
+    const jx86_reg_t _breg_ = (const jx86_reg_t) (breg);                \
+    const jx86_int32_t _disp_ = (const jx86_int32_t) (disp);            \
+    const jx86_xmm_t _sxmm_ = (const jx86_xmm_t) (sxmm);                \
+    jx86_emit_uint8((cp), (op1));                                       \
+    jx86_emit_rex((cp), 0, _sxmm_, 0, _breg_);                          \
+    jx86_emit_uint16((cp), ((op3) << 8) | (op2));                       \
+    jx86_emit_membase((cp), _sxmm_, _breg_, _disp_);                    \
+  } while (0)
+
+#define jx86_sse_op3_xmm_membase(cp, op1, op2, op3, dxmm, breg, disp)   \
+  do {                                                                  \
+    const jx86_xmm_t _dxmm_ = (const jx86_xmm_t) (dxmm);                \
+    const jx86_reg_t _breg_ = (const jx86_reg_t) (breg);                \
+    const jx86_int32_t _disp_ = (const jx86_int32_t) (disp);            \
+    jx86_emit_uint8((cp), (op1));                                       \
+    jx86_emit_rex((cp), 0, _dxmm_, 0, _breg_);                          \
+    jx86_emit_uint16((cp), ((op3) << 8) | (op2));                       \
+    jx86_emit_membase((cp), _dxmm_, _breg_, _disp_);                    \
+  } while (0)
+
+#define jx86_sse_op3_xmm_xmm(cp, op1, op2, op3, dxmm, sxmm)     \
+  do {                                                          \
+    const jx86_xmm_t _dxmm_ = (const jx86_xmm_t) (dxmm);        \
+    const jx86_xmm_t _sxmm_ = (const jx86_xmm_t) (sxmm);        \
+    jx86_emit_uint8((cp), (op1));                               \
+    jx86_emit_rex((cp), 0, _dxmm_, 0, _sxmm_);                  \
+    jx86_emit_uint16((cp), ((op3) << 8) | (op2));               \
+    jx86_emit_reg((cp), _dxmm_, _sxmm_);                        \
+  } while (0)
+
+#define jx86_addsd_xmm_membase(cp, dxmm, breg, disp)                    \
+  jx86_sse_op3_xmm_membase((cp), 0xf2, 0x0f, 0x58, (dxmm), (breg), (disp))
+#define jx86_addsd_xmm_xmm(cp, dxmm, sxmm)                              \
+  jx86_sse_op3_xmm_xmm((cp), 0xf2, 0x0f, 0x58, (dxmm), (sxmm))
+#define jx86_divsd_xmm_membase(cp, dxmm, breg, disp)                    \
+  jx86_sse_op3_xmm_membase((cp), 0xf2, 0x0f, 0x5e, (dxmm), (breg), (disp))
+#define jx86_divsd_xmm_xmm(cp, dxmm, sxmm)                              \
+  jx86_sse_op3_xmm_xmm((cp), 0xf2, 0x0f, 0x5e, (dxmm), (sxmm))
+#define jx86_mulsd_xmm_membase(cp, dxmm, breg, disp)                    \
+  jx86_sse_op3_xmm_membase((cp), 0xf2, 0x0f, 0x59, (dxmm), (breg), (disp))
+#define jx86_mulsd_xmm_xmm(cp, dxmm, sxmm)                              \
+  jx86_sse_op3_xmm_xmm((cp), 0xf2, 0x0f, 0x59, (dxmm), (sxmm))
+#define jx86_sqrtsd_xmm_membase(cp, dxmm, breg, disp)                   \
+  jx86_sse_op3_xmm_membase((cp), 0xf2, 0x0f, 0x51, (dxmm), (breg), (disp))
+#define jx86_sqrtsd_xmm_xmm(cp, dxmm, sxmm)                             \
+  jx86_sse_op3_xmm_xmm((cp), 0xf2, 0x0f, 0x51, (dxmm), (sxmm))
+#define jx86_subsd_xmm_membase(cp, dxmm, breg, disp)                    \
+  jx86_sse_op3_xmm_membase((cp), 0xf2, 0x0f, 0x5c, (dxmm), (breg), (disp))
+#define jx86_subsd_xmm_xmm(cp, dxmm, sxmm)                              \
+  jx86_sse_op3_xmm_xmm((cp), 0xf2, 0x0f, 0x5c, (dxmm), (sxmm))
+
+#define jx86_movhpd_membase_xmm(cp, breg, disp, sxmm)                   \
+  jx86_sse_op3_membase_xmm((cp), 0x66, 0x0f, 0x17, (breg), (disp), (sxmm))
+#define jx86_movhpd_xmm_membase(cp, dxmm, breg, disp)                   \
+  jx86_sse_op3_xmm_membase((cp), 0x66, 0x0f, 0x16, (dxmm), (breg), (disp))
+
+#define jx86_movlpd_membase_xmm(cp, breg, disp, sxmm)                   \
+  jx86_sse_op3_membase_xmm((cp), 0x66, 0x0f, 0x13, (breg), (disp), (sxmm))
+#define jx86_movlpd_xmm_membase(cp, dxmm, breg, disp)                   \
+  jx86_sse_op3_xmm_membase((cp), 0x66, 0x0f, 0x12, (dxmm), (breg), (disp))
+
+#define jx86_ucomisd_xmm_membase(cp, dxmm, breg, disp)                  \
+  jx86_sse_op3_xmm_membase((cp), 0x66, 0x0f, 0x2e, (dxmm), (breg), (disp))
+#define jx86_ucomisd_xmm_xmm(cp, dxmm, sxmm)                            \
+  jx86_sse_op3_xmm_xmm((cp), 0x66, 0x0f, 0x2e, (dxmm), (sxmm))
+
 
 #endif /* !CAML_JX86_H */

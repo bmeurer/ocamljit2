@@ -137,16 +137,15 @@
 	 * return %rbx points to the header of the newly allocated
 	 * block.
 	 */
+.Lcaml_jit_rt_alloc1_gc:
+        addq    $(2*8), %rbx
+        call    .Lcaml_jit_rt_call_gc
 FUNCTION(G(caml_jit_rt_alloc1))
 .Lcaml_jit_rt_alloc1:
         subq    $(2*8), %rbx
         cmpq    %rbp, %rbx
         jb      .Lcaml_jit_rt_alloc1_gc
         ret
-.Lcaml_jit_rt_alloc1_gc:
-        addq    $(2*8), %rbx
-        call    .Lcaml_jit_rt_call_gc
-        jmp     .Lcaml_jit_rt_alloc1
 
         /* caml_jit_rt_alloc2:
 	 *
@@ -154,16 +153,15 @@ FUNCTION(G(caml_jit_rt_alloc1))
 	 * return %rbx points to the header of the newly allocated
 	 * block.
 	 */
+.Lcaml_jit_rt_alloc2_gc:
+        addq    $(3*8), %rbx
+        call    .Lcaml_jit_rt_call_gc
 FUNCTION(G(caml_jit_rt_alloc2))
 .Lcaml_jit_rt_alloc2:
         subq    $(3*8), %rbx
         cmpq    %rbp, %rbx
         jb      .Lcaml_jit_rt_alloc2_gc
         ret
-.Lcaml_jit_rt_alloc2_gc:
-        addq    $(3*8), %rbx
-        call    .Lcaml_jit_rt_call_gc
-        jmp     .Lcaml_jit_rt_alloc2
 
         /* caml_jit_rt_alloc3:
 	 *
@@ -171,35 +169,33 @@ FUNCTION(G(caml_jit_rt_alloc2))
 	 * return %rbx points to the header of the newly allocated
 	 * block.
 	 */
+.Lcaml_jit_rt_alloc3_gc:
+        addq    $(4*8), %rbx
+        call    .Lcaml_jit_rt_call_gc
 FUNCTION(G(caml_jit_rt_alloc3))
 .Lcaml_jit_rt_alloc3:
         subq    $(4*8), %rbx
         cmpq    %rbp, %rbx
         jb      .Lcaml_jit_rt_alloc3_gc
         ret
-.Lcaml_jit_rt_alloc3_gc:
-        addq    $(4*8), %rbx
-        call    .Lcaml_jit_rt_call_gc
-        jmp     .Lcaml_jit_rt_alloc3
 
         /* caml_jit_rt_allocN:
 	 *
 	 * Allocates a block of bhsize %r11 in the minor heap.
 	 * Upon return %rbx points to the header of the newly
-	 * allocated block.
+	 * allocated block. %r11 is preserved across calls.
 	 */
+.Lcaml_jit_rt_allocN_gc:        
+        pushq   %r11                    /* preserve desired size */
+        addq    %r11, %rbx
+        call    .Lcaml_jit_rt_call_gc
+        popq    %r11                    /* recover desired size */
 FUNCTION(G(caml_jit_rt_allocN))
 .Lcaml_jit_rt_allocN:
         subq    %r11, %rbx
         cmpq    %rbp, %rbx
         jb      .Lcaml_jit_rt_allocN_gc
         ret
-.Lcaml_jit_rt_allocN_gc:
-        pushq   %r11                    /* preserve desired size */
-        addq    %r11, %rbx
-        call    .Lcaml_jit_rt_call_gc
-        popq    %r11                    /* recover desired size */
-        jmp     .Lcaml_jit_rt_allocN
 
         /* .Lcaml_jit_rt_call_gc:
 	 *
@@ -243,17 +239,11 @@ FUNCTION(G(caml_jit_rt_allocN))
 	 * into the block. Upon return %rax contains the
 	 * block pointer.
          */
-.Lcaml_jit_rt_makeblock1_gc:
-        addq    $(2*8), %rbx
-        call    .Lcaml_jit_rt_call_gc
 FUNCTION(G(caml_jit_rt_makeblock1))
     /* Generate the block header */
         orl     $((1 << 10) | (3 << 8)), %esi   /* Make_header(1, %esi, Caml_black) */
     /* Allocate space in the minor heap */
-        subq    $(2*8), %rbx
-        cmpq    %rbp, %rbx
-    /* Check if minor heap exausted */
-        jb      .Lcaml_jit_rt_makeblock1_gc
+        call    .Lcaml_jit_rt_alloc1
     /* Initialize the block */
         movq    %rsi, 0*8(%rbx)
         movq    %rax, 1*8(%rbx)
@@ -269,19 +259,13 @@ FUNCTION(G(caml_jit_rt_makeblock1))
 	 * into the block. Upon return %rax contains the
 	 * block pointer and %r14 is incremented by 1*8.
          */
-.Lcaml_jit_rt_makeblock2_gc:
-        addq    $(3*8), %rbx
-        call    .Lcaml_jit_rt_call_gc
 FUNCTION(G(caml_jit_rt_makeblock2))
     /* Generate the block header */
         orl     $((2 << 10) | (3 << 8)), %esi   /* Make_header(2, %esi, Caml_black) */
     /* Allocate space in the minor heap */
-        subq    $(3*8), %rbx
-        cmpq    %rbp, %rbx
+        call    .Lcaml_jit_rt_alloc2
     /* Fetch elements */
         movq    0*8(%r14), %rcx
-    /* Check if minor heap exhausted */
-        jb      .Lcaml_jit_rt_makeblock2_gc
     /* Initialize the block */
         movq    %rsi, 0*8(%rbx)
         movq    %rax, 1*8(%rbx)
@@ -300,20 +284,14 @@ FUNCTION(G(caml_jit_rt_makeblock2))
 	 * return %rax contains the block pointer and %r14
 	 * is incremented by 2*8.
 	 */
-.Lcaml_jit_rt_makeblock3_gc:
-        addq    $(4*8), %rbx
-        call    .Lcaml_jit_rt_call_gc
 FUNCTION(G(caml_jit_rt_makeblock3))
     /* Generate the block header */
         orl     $((3 << 10) | (3 << 8)), %esi   /* Make_header(3, %esi, Caml_black) */
     /* Allocate space in the minor heap */
-        subq    $(4*8), %rbx
-        cmpq    %rbp, %rbx
+        call    .Lcaml_jit_rt_alloc3
     /* Fetch elements */
         movq    0*8(%r14), %rcx
         movq    1*8(%r14), %rdx
-    /* Check if minor heap exhausted */
-        jb      .Lcaml_jit_rt_makeblock3_gc
     /* Initialize the block */
         movq    %rsi, 0*8(%rbx)
         movq    %rax, 1*8(%rbx)
@@ -334,17 +312,12 @@ FUNCTION(G(caml_jit_rt_makeblock3))
 	 * Upon return %rax contains the block pointer and %r14
 	 * is incremented by (%rdi-1)*8.
 	 */
-.Lcaml_jit_rt_makeblockN_gc:
-        addq    %r11, %rbx
-        call    .Lcaml_jit_rt_call_gc
 FUNCTION(G(caml_jit_rt_makeblockN))
+    /* Allocate space in the minor heap */
         leaq    8(, %rdi, 8), %r11
-        subq    %r11, %rbx
-        cmpq    %rbp, %rbx
+        call    .Lcaml_jit_rt_allocN
     /* Calculate the number of stack arguments */
         leaq    -1(%rdi), %rcx
-    /* Check if minor heap exhausted */
-        jb      .Lcaml_jit_rt_makeblockN_gc
     /* Generate the block header */
         shlq    $10, %rdi
         orl     $(3 << 8), %esi
@@ -454,11 +427,10 @@ FUNCTION(G(caml_jit_rt_makeshrblock))
         subq    $(1*8), %r14
         movq    %rax, 0*8(%r14)
     /* Allocate a block in the major heap */
-        pushq   %rdi
+        movq    %rdi, %r13      /* preserve wosize in %r13 */
         call    GCALL(caml_alloc_shr)
         movq    %rax, %rbx      /* save block pointer in %rbx */
         movq    %rax, %r12
-        popq    %r13            /* restore wosize */
         .p2align 3
 .Lcaml_jit_rt_makeshrblock_regular_loop:
         movq    %r12, %rdi
@@ -484,26 +456,18 @@ FUNCTION(G(caml_jit_rt_makeshrblock))
 	 *
 	 * Upon entry, %rax contains the restart byte code address.
          */
-.Lcaml_jit_rt_grab_closure_and_return_gc:
-        addq    %r11, %rbx
-        call    .Lcaml_jit_rt_call_gc
-        jmp     .Lcaml_jit_rt_grab_closure_and_return_1
 FUNCTION(G(caml_jit_rt_grab_closure_and_return))
     /* Determine the wosize from the extra arguments */
         shrq    $1, %r13
         addq    $3, %r13
-.Lcaml_jit_rt_grab_closure_and_return_1:        
     /* Allocate space in the minor heap */
         leaq    8(, %r13, 8), %r11
-        cld
-        subq    %r11, %rbx
-        cmpq    %rbp, %rbx
+        call    .Lcaml_jit_rt_allocN
     /* Setup for initialization below */
+        cld
         leaq    -2(%r13), %rcx
         leaq    3*8(%rbx), %rdi
         movq    %r14, %rsi
-    /* Check if minor heap exhausted */
-        jb      .Lcaml_jit_rt_grab_closure_and_return_gc
     /* Store the closure header (%r13 << 10 | Closure_tag | Caml_black) */
         shlq    $10, %r13
         orq     $1015, %r13

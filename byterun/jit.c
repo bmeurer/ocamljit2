@@ -39,6 +39,12 @@
 #include "stacks.h"
 
 
+/* from floats.c */
+extern value caml_add_float(value, value);
+extern value caml_sub_float(value, value);
+extern value caml_mul_float(value, value);
+extern value caml_div_float(value, value);
+
 /* from obj.c */
 extern value caml_cache_public_method2(value *, value, value *);
 
@@ -1033,12 +1039,42 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
 
     case C_CALLN:
       instr = (C_CALL1 - 1) + *pc++;
-      /* FALL-THROUGH */
-    case C_CALL1:
+      addr = Primitive(*pc++);
+      goto c_call;
     case C_CALL2:
+      addr = Primitive(*pc++);
+      if (addr == &caml_add_float) {
+        addr = &caml_jit_rt_add_float;
+      c_call_float2:
+        sp += 8;
+        if (sp != 0) {
+          jx86_leaq_reg_membase(cp, JX86_R14, JX86_R14, sp);
+          sp = 0;
+        }
+        jx86_call(cp, addr);
+        break;
+      }
+      else if (addr == &caml_sub_float) {
+        addr = &caml_jit_rt_sub_float;
+        goto c_call_float2;
+      }
+      else if (addr == &caml_mul_float) {
+        addr = &caml_jit_rt_mul_float;
+        goto c_call_float2;
+      }
+      else if (addr == &caml_div_float) {
+        addr = &caml_jit_rt_div_float;
+        goto c_call_float2;
+      }
+      else {
+        goto c_call;
+      }
+    case C_CALL1:
     case C_CALL3:
     case C_CALL4:
-    case C_CALL5: {
+    case C_CALL5:
+      addr = Primitive(*pc++);
+    c_call: {
       int num_args = instr - (C_CALL1 - 1);
 
       /* load %rbp with the address of caml_young_ptr */
@@ -1083,11 +1119,11 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
       jx86_movq_membase_reg(cp, JX86_R15, 0, JX86_R14);
 
       /* save the pc to the reserved saved_pc area 1*8(%rsp) */
-      jx86_movq_reg_imm(cp, JX86_R11, pc + 2);
+      jx86_movq_reg_imm(cp, JX86_R11, pc + 1);
       jx86_movq_membase_reg(cp, JX86_RSP, 1 * 8, JX86_R11);
 
       /* call the primitive C function */
-      jx86_call(cp, Primitive(*pc++));
+      jx86_call(cp, addr);
 
       /* reset saved_pc area 1*8(%rsp) */
       jx86_movq_membase_imm(cp, JX86_RSP, 1 * 8, 0);

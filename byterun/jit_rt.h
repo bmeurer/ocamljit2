@@ -43,4 +43,9 @@ CAML_JIT_INTERNAL void  caml_jit_rt_return();
 CAML_JIT_INTERNAL value caml_jit_rt_start(code_t, value, value, value, value *);
 CAML_JIT_INTERNAL void  caml_jit_rt_stop();
 
+CAML_JIT_INTERNAL void  caml_jit_rt_add_float();
+CAML_JIT_INTERNAL void  caml_jit_rt_sub_float();
+CAML_JIT_INTERNAL void  caml_jit_rt_mul_float();
+CAML_JIT_INTERNAL void  caml_jit_rt_div_float();
+
 #endif /* !CAML_JIT_RT_H */

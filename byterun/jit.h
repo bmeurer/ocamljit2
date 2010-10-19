@@ -21,7 +21,7 @@
 #include <stdlib.h>
 
 /* System detection */
-#if defined(__APPLE__)
+#if defined(__APPLE__) || defined(__GLIBC__) || defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
 # include <stdint.h>
 typedef int8_t    caml_jit_int8_t;
 typedef uint8_t   caml_jit_uint8_t;

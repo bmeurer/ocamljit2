@@ -63,7 +63,7 @@ clean::
 	$(ASPP) -DSYS_$(SYSTEM) -o $@ $<
 
 .S.pic.o:
-	$(ASPP) -DSYS_$(SYSTEM) -o $@ $<
+	$(ASPP) -fPIC -DSYS_$(SYSTEM) -o $@ $<
 
 .c.d.o:
 	@ if test -f $*.o; then mv $*.o $*.f.o; else :; fi

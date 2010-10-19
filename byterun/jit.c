@@ -40,10 +40,17 @@
 
 
 /* from floats.c */
+extern value caml_sqrt_float(value);
 extern value caml_add_float(value, value);
 extern value caml_sub_float(value, value);
 extern value caml_mul_float(value, value);
 extern value caml_div_float(value, value);
+extern value caml_eq_float(value, value);
+extern value caml_neq_float(value, value);
+extern value caml_le_float(value, value);
+extern value caml_lt_float(value, value);
+extern value caml_ge_float(value, value);
+extern value caml_gt_float(value, value);
 
 /* from obj.c */
 extern value caml_cache_public_method2(value *, value, value *);
@@ -757,11 +764,11 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
         jx86_leaq_reg_membase(cp, JX86_R14, JX86_R14, sp);
         sp = 0;
       }
+      jx86_movlpd_xmm_membase(cp, JX86_XMM0, JX86_RAX, *pc++ * 8);
       jx86_call(cp, &caml_jit_rt_alloc1);
-      jx86_movq_reg_membase(cp, JX86_RSI, JX86_RAX, *pc++ * 8);
       jx86_leaq_reg_membase(cp, JX86_RAX, JX86_RBX, 1 * 8);
       jx86_movq_membase_imm(cp, JX86_RBX, 0 * 8, Make_header(Double_wosize, Double_tag, Caml_black));
-      jx86_movq_membase_reg(cp, JX86_RBX, 1 * 8, JX86_RSI);
+      jx86_movlpd_membase_xmm(cp, JX86_RBX, 1 * 8, JX86_XMM0);
       break;
 
     case SETFIELD:
@@ -1041,12 +1048,23 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
       instr = (C_CALL1 - 1) + *pc++;
       addr = Primitive(*pc++);
       goto c_call;
+    case C_CALL1:
+      addr = Primitive(*pc++);
+      if (addr == &caml_sqrt_float) {
+        jx86_sqrtsd_xmm_membase(cp, JX86_XMM0, JX86_RAX, 0);
+        addr = &caml_jit_rt_copy_double;
+        goto c_call_float1;
+      }
+      else {
+        goto c_call;
+      }
     case C_CALL2:
       addr = Primitive(*pc++);
       if (addr == &caml_add_float) {
         addr = &caml_jit_rt_add_float;
       c_call_float2:
         sp += 8;
+      c_call_float1:
         if (sp != 0) {
           jx86_leaq_reg_membase(cp, JX86_R14, JX86_R14, sp);
           sp = 0;
@@ -1066,10 +1084,37 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
         addr = &caml_jit_rt_div_float;
         goto c_call_float2;
       }
+      else if (addr == &caml_eq_float) {
+        op = JX86_SETE;
+      cmpfloat:
+        jx86_movq_reg_membase(cp, JX86_RSI, JX86_R14, sp);
+        jx86_movlpd_xmm_membase(cp, JX86_XMM0, JX86_RAX, 0);
+        jx86_ucomisd_xmm_membase(cp, JX86_XMM0, JX86_RSI, 0);
+        goto setcc_shl1_or1_pop1;
+      }
+      else if (addr == &caml_neq_float) {
+        op = JX86_SETNE;
+        goto cmpfloat;
+      }
+      else if (addr == &caml_le_float) {
+        op = JX86_SETBE;
+        goto cmpfloat;
+      }
+      else if (addr == &caml_lt_float) {
+        op = JX86_SETB;
+        goto cmpfloat;
+      }
+      else if (addr == &caml_ge_float) {
+        op = JX86_SETAE;
+        goto cmpfloat;
+      }
+      else if (addr == &caml_gt_float) {
+        op = JX86_SETA;
+        goto cmpfloat;
+      }
       else {
         goto c_call;
       }
-    case C_CALL1:
     case C_CALL3:
     case C_CALL4:
     case C_CALL5:
@@ -1253,6 +1298,7 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
       op = JX86_SETE;
     cmpint:
       jx86_cmpq_reg_membase(cp, JX86_RAX, JX86_R14, sp);
+    setcc_shl1_or1_pop1:
       jx86_setcc_reg(cp, op, JX86_AL);
       jx86_movzxlb_reg_reg(cp, JX86_EAX, JX86_AL);
       goto shl1_or1_pop1;

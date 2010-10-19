@@ -208,9 +208,8 @@ FUNCTION(G(caml_jit_rt_allocN))
     /* Push preserved registers */
         pushq   %rdi
         pushq   %rsi
-        subq    $(2*8), %rsp
+        subq    $(1*8), %rsp
         movlpd  %xmm0, 0*8(%rsp)
-        movlpd  %xmm1, 1*8(%rsp)
     /* Push environment and acc onto the Caml stack */
         movq    %r12, -1*8(%r14)
         movq    %rax, -2*8(%r14)
@@ -230,9 +229,8 @@ FUNCTION(G(caml_jit_rt_allocN))
         movq    -1*8(%r14), %r12
         movq    -2*8(%r14), %rax
     /* Restore preserved registers */
-        movlpd  1*8(%rsp), %xmm1
         movlpd  0*8(%rsp), %xmm0
-        addq    $(2*8), %rsp
+        addq    $(1*8), %rsp
         popq    %rsi
         popq    %rdi
         ret
@@ -873,6 +871,7 @@ FUNCTION(G(caml_jit_rt_stop))
 
 /* Floating point operations */
 
+FUNCTION(G(caml_jit_rt_copy_double))
 .Lcaml_jit_rt_copy_double:
         call    .Lcaml_jit_rt_alloc1
         movq    $((1 << 10) | (3 << 8) | 256), 0*8(%rbx)
@@ -891,8 +890,7 @@ FUNCTION(G(caml_jit_rt_stop))
 FUNCTION(G(caml_jit_rt_add_float))
         movq    -1*8(%r14), %rsi
         movlpd  (%rax), %xmm0
-        movlpd  (%rsi), %xmm1
-        addsd   %xmm1, %xmm0
+        addsd   (%rsi), %xmm0
         jmp     .Lcaml_jit_rt_copy_double
 
         /* caml_jit_rt_sub_float:
@@ -906,8 +904,7 @@ FUNCTION(G(caml_jit_rt_add_float))
 FUNCTION(G(caml_jit_rt_sub_float))
         movq    -1*8(%r14), %rsi
         movlpd  (%rax), %xmm0
-        movlpd  (%rsi), %xmm1
-        subsd   %xmm1, %xmm0
+        subsd   (%rsi), %xmm0
         jmp     .Lcaml_jit_rt_copy_double
 
         /* caml_jit_rt_mul_float:
@@ -921,8 +918,7 @@ FUNCTION(G(caml_jit_rt_sub_float))
 FUNCTION(G(caml_jit_rt_mul_float))
         movq    -1*8(%r14), %rsi
         movlpd  (%rax), %xmm0
-        movlpd  (%rsi), %xmm1
-        mulsd   %xmm1, %xmm0
+        mulsd   (%rsi), %xmm0
         jmp     .Lcaml_jit_rt_copy_double
 
         /* caml_jit_rt_div_float:
@@ -936,7 +932,6 @@ FUNCTION(G(caml_jit_rt_mul_float))
 FUNCTION(G(caml_jit_rt_div_float))
         movq    -1*8(%r14), %rsi
         movlpd  (%rax), %xmm0
-        movlpd  (%rsi), %xmm1
-        divsd   %xmm1, %xmm0
+        divsd   (%rsi), %xmm0
         jmp     .Lcaml_jit_rt_copy_double
 

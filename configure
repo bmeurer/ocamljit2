@@ -414,6 +414,16 @@ if test $3 = 8 && test $int64_native = false; then
   exit 2
 fi
 
+echo "Checking the size of sigjmp_buf..."
+set `sh ./runtest sigjmpbuf.c`
+case $? in
+  0) echo "sigjmp_buf found with size $1."
+     echo "#define SIZEOF_SIGJMPBUF $1" >> m.h;;
+  *) echo "Unable to compile the test program."
+     echo "Make sure the C compiler $cc is properly installed."
+     exit 2;;
+esac
+
 # Determine endianness
 
 sh ./runtest endian.c
@@ -856,6 +866,15 @@ else
     echo "sigsetmask() found"
     echo "#define HAS_SIGSETMASK" >> s.h
   fi
+fi
+
+# Check for sigsetjmp __sigsetjmp
+if sh ./hasgot sigsetjmp; then
+  echo "sigsetjmp() found."
+  echo "#define HAS_SIGSETJMP" >> s.h
+elif sh ./hasgot __sigsetjmp; then
+  echo "__sigsetjmp() found."
+  echo "#define HAS___SIGSETJMP" >> s.h
 fi
 
 # For the Pervasives module

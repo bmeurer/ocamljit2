@@ -17,6 +17,9 @@
 /* Asm part of the JIT runtime system, AMD64 processor */
 /* Must be preprocessed by cpp */
 
+#include "../config/m.h"
+#include "../config/s.h"
+
 #ifdef SYS_macosx
 
 #define G(r) _##r
@@ -36,7 +39,7 @@
 #define FUNCTION(name) \
         .globl name; \
         .type name,@function; \
-        .private_extern name; \
+        .hidden name; \
         .p2align 3; \
         name:
 
@@ -781,8 +784,7 @@ FUNCTION(G(caml_jit_rt_raise))
 	 *  2*8(%rsp) - initial sp offset
 	 *  3*8(%rsp) - initial local roots
 	 *  4*8(%rsp) - initial external raise
-	 *  5*8(%rsp) - reserved/padding
-	 *  6*8(%rsp) - start of sigjmp buffer (19 longs)
+	 *  5*8(%rsp) - start of sigjmp buffer (SIZEOF_SIGJMPBUF bytes + padding)
 	 */
 FUNCTION(G(caml_jit_rt_start))
     /* Push callee-save registers */
@@ -800,11 +802,19 @@ FUNCTION(G(caml_jit_rt_start))
         INCL_VAR(caml_callback_depth)
     /* Calculate initial stack pointer offset */
         subq    %r8, %r15
-    /* Reserve C stack space for sigjmp buffer (19 longs + 1 long padding),
-     * initial external raise, initial local roots, initial
-     * sp offset, saved_pc and accu (1 long each).
-     * C stack is 16-aligned afterwards. */
-        subq    $(25 * 8), %rsp
+    /* Reserve C stack space for:
+     *
+     * - sigjmp_buf             (SIZEOF_SIGJMPBUF byte)
+     * - initial external raise (8 byte)
+     * - initial local roots    (8 byte)
+     * - initial sp offset      (8 byte)
+     * - saved_pc               (8 byte)
+     * - saved accu             (8 byte)
+     *
+     * Round everything to an odd number of longs, so C stack
+     * is aligned on a 16-byte boundary afterwards.
+     */
+        subq    $((((SIZEOF_SIGJMPBUF + 7) / 8 + 5) | 1) * 8), %rsp
     /* Save initial sp offset, local roots and external raise */
         movq    %r15, 2*8(%rsp) /* initial sp offset */
         movq    %r14, 3*8(%rsp) /* initial local roots */
@@ -823,9 +833,15 @@ FUNCTION(G(caml_jit_rt_start))
         movq    %rax, 0*8(%rsp)
         movq    %rdi, 1*8(%rsp)
     /* Setup the sigjmp buffer */
-        leaq    6*8(%rsp), %rdi /* sigjmp_buf */
+        leaq    5*8(%rsp), %rdi /* sigjmp_buf */
         xorl    %esi, %esi
+#if defined(HAS_SIGSETJMP)
         call    GCALL(sigsetjmp)
+#elif defined(HAS___SIGSETJMP)
+        call    GCALL(__sigsetjmp)
+#else
+#error "Neither sigsetjmp() nor __sigsetjmp() found."
+#endif
         testl   %eax, %eax
     /* Check if we caught an exception from C code */
         jnz     .Lcaml_jit_rt_start_caught
@@ -835,7 +851,7 @@ FUNCTION(G(caml_jit_rt_start))
     /* Reset saved_pc */
         movq    $0, 1*8(%rsp)
     /* Setup the new external raise buffer */
-        leaq    6*8(%rsp), %r10
+        leaq    5*8(%rsp), %r10
         STORE_VAR(%r10, caml_external_raise)
     /* Jump to the code */
         jmp     .Lcaml_jit_rt_trampoline
@@ -875,7 +891,7 @@ FUNCTION(G(caml_jit_rt_stop))
     /* Decrement callback counter */
         DECL_VAR(caml_callback_depth)
     /* Pop callee-save registers */
-        addq    $(25 * 8), %rsp
+        addq    $((((SIZEOF_SIGJMPBUF + 7) / 8 + 5) | 1) * 8), %rsp
         popq    %r15
         popq    %r14
         popq    %r13

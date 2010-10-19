@@ -55,6 +55,7 @@ static void thread_callback(void)
 
 #endif
 
+#ifndef CAML_JIT
 CAMLexport value caml_callbackN_exn(value closure, int narg, value args[])
 {
   int i;
@@ -101,6 +102,7 @@ CAMLexport value caml_callbackN_exn(value closure, int narg, value args[])
   if (Is_exception_result(res)) caml_extern_sp += narg + 4; /* PR#1228 */
   return res;
 }
+#endif /* !CAML_JIT */
 
 CAMLexport value caml_callback_exn(value closure, value arg1)
 {

@@ -54,7 +54,16 @@ clean::
 	rm -f libcamlrun_shared.so
 
 
-.SUFFIXES: .d.o .pic.o
+.SUFFIXES: .S .d.o .pic.o
+
+.S.o:
+	$(ASPP) -DSYS_$(SYSTEM) -o $@ $<
+
+.S.d.o:
+	$(ASPP) -DSYS_$(SYSTEM) -o $@ $<
+
+.S.pic.o:
+	$(ASPP) -DSYS_$(SYSTEM) -o $@ $<
 
 .c.d.o:
 	@ if test -f $*.o; then mv $*.o $*.f.o; else :; fi

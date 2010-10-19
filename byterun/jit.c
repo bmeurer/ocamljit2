@@ -820,6 +820,7 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
       jx86_movq_reg_membase(cp, JX86_RSI, JX86_R14, sp);
       jx86_shrq_reg_imm(cp, JX86_RSI, 1);
       jx86_movb_reg_memindex(cp, JX86_AL, JX86_RAX, 0, JX86_RSI, 0);
+    movzxlb_shl1_or1_pop1:
       jx86_movzxlb_reg_reg(cp, JX86_EAX, JX86_AL);
     shl1_or1_pop1:
       jx86_shlq_reg_imm(cp, JX86_RAX, 1);
@@ -1085,28 +1086,42 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
         goto c_call_float2;
       }
       else if (addr == &caml_eq_float) {
-        op = JX86_SETE;
+        jx86_movq_reg_membase(cp, JX86_RSI, JX86_R14, sp);
+        jx86_movlpd_xmm_membase(cp, JX86_XMM0, JX86_RAX, 0);
+        jx86_ucomisd_xmm_membase(cp, JX86_XMM0, JX86_RSI, 0);
+        jx86_sete_reg(cp, JX86_AL);
+        jx86_setnp_reg(cp, JX86_DL);
+        jx86_andl_reg_reg(cp, JX86_EAX, JX86_EDX);
+        goto movzxlb_shl1_or1_pop1;
+      }
+      else if (addr == &caml_neq_float) {
+        jx86_movq_reg_membase(cp, JX86_RSI, JX86_R14, sp);
+        jx86_movlpd_xmm_membase(cp, JX86_XMM0, JX86_RAX, 0);
+        jx86_ucomisd_xmm_membase(cp, JX86_XMM0, JX86_RSI, 0);
+        jx86_setne_reg(cp, JX86_AL);
+        jx86_setp_reg(cp, JX86_DL);
+        jx86_orl_reg_reg(cp, JX86_EAX, JX86_EDX);
+        goto movzxlb_shl1_or1_pop1;
+      }
+      else if (addr == &caml_le_float) {
+        op = JX86_SETAE;
+      cmpfloat_rev:
+        jx86_movq_reg_membase(cp, JX86_RSI, JX86_R14, sp);
+        jx86_movlpd_xmm_membase(cp, JX86_XMM0, JX86_RSI, 0);
+        jx86_ucomisd_xmm_membase(cp, JX86_XMM0, JX86_RAX, 0);
+        goto setcc_shl1_or1_pop1;
+      }
+      else if (addr == &caml_lt_float) {
+        op = JX86_SETA;
+        goto cmpfloat_rev;
+      }
+      else if (addr == &caml_ge_float) {
+        op = JX86_SETAE;
       cmpfloat:
         jx86_movq_reg_membase(cp, JX86_RSI, JX86_R14, sp);
         jx86_movlpd_xmm_membase(cp, JX86_XMM0, JX86_RAX, 0);
         jx86_ucomisd_xmm_membase(cp, JX86_XMM0, JX86_RSI, 0);
         goto setcc_shl1_or1_pop1;
-      }
-      else if (addr == &caml_neq_float) {
-        op = JX86_SETNE;
-        goto cmpfloat;
-      }
-      else if (addr == &caml_le_float) {
-        op = JX86_SETBE;
-        goto cmpfloat;
-      }
-      else if (addr == &caml_lt_float) {
-        op = JX86_SETB;
-        goto cmpfloat;
-      }
-      else if (addr == &caml_ge_float) {
-        op = JX86_SETAE;
-        goto cmpfloat;
       }
       else if (addr == &caml_gt_float) {
         op = JX86_SETA;

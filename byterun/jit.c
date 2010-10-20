@@ -110,7 +110,17 @@ void caml_jit_init()
     caml_fatal_error_arg("Failed to allocate JIT code area (%s)!\n", strerror(errno));
   caml_jit_code_ptr = cp;
 
-  /* Generate the compile trampoline code at the end:
+  /* Generate the compile trampoline code at the end. If
+   * caml_jit_compile is within +/-2GB of code area, we
+   * use the shorter (and faster) sequence:
+   *
+   *   movq %rax, 0(%rsp)
+   *   call caml_jit_compile(%rip)
+   *   movq %rax, %rdx
+   *   jmpq *%rdx
+   *
+   * Otherwise we have to use an indirect call via a 64bit
+   * pointer:
    *
    *   movq  %rax, 0(%rsp)
    *   callq 9(%rip)
@@ -125,15 +135,27 @@ void caml_jit_init()
    * return to not yet compiled code, where %rax contains
    * the return value.
    */
-  cp = caml_jit_code_ptr + CAML_JIT_CODE_SIZE - 27;
-  jx86_movq_membase_reg(cp, JX86_RSP, 0, JX86_RAX); /* movq %rax, 0(%rsp) */
-  jx86_emit_uint8(cp, 0xff);                        /* callq 7(%rip) */
-  jx86_emit_address_byte(cp, 0, 2, 5);
-  jx86_emit_int32(cp, 9);
-  jx86_movq_reg_reg(cp, JX86_RDX, JX86_RAX);        /* movq %rax, %rdx */
-  jx86_movq_reg_membase(cp, JX86_RAX, JX86_RSP, 0); /* movq 0(%rsp), %rax */
-  jx86_jmpq_reg(cp, JX86_RDX);                      /* jmpq *%rdx */
-  jx86_emit_uint64(cp, &caml_jit_compile);          /* .quad caml_jit_compile */
+  caml_jit_code_end = cp + CAML_JIT_CODE_SIZE - (4 + 5 + 3 + 4 + 2);
+  if (JX86_IS_IMM32((caml_jit_uint8_t *) &caml_jit_compile - (caml_jit_code_end + 4) - 5)) {
+    cp = caml_jit_code_end;
+    jx86_movq_membase_reg(cp, JX86_RSP, 0, JX86_RAX); /* movq %rax, 0(%rsp) */
+    jx86_call(cp, &caml_jit_compile);                 /* call caml_jit_compile(%rip) */
+    jx86_movq_reg_reg(cp, JX86_RDX, JX86_RAX);        /* movq %rax, %rdx */
+    jx86_movq_reg_membase(cp, JX86_RAX, JX86_RSP, 0); /* movq 0(%rsp), %rax */
+    jx86_jmpq_reg(cp, JX86_RDX);                      /* jmpq *%rdx */
+  }
+  else {
+    caml_jit_code_end = (caml_jit_code_end + 5) - (6 + 8);
+    cp = caml_jit_code_end;
+    jx86_movq_membase_reg(cp, JX86_RSP, 0, JX86_RAX); /* movq %rax, 0(%rsp) */
+    jx86_emit_uint8(cp, 0xff);                        /* callq 9(%rip) */
+    jx86_emit_address_byte(cp, 0, 2, 5);
+    jx86_emit_int32(cp, 9);
+    jx86_movq_reg_reg(cp, JX86_RDX, JX86_RAX);        /* movq %rax, %rdx */
+    jx86_movq_reg_membase(cp, JX86_RAX, JX86_RSP, 0); /* movq 0(%rsp), %rax */
+    jx86_jmpq_reg(cp, JX86_RDX);                      /* jmpq *%rdx */
+    jx86_emit_uint64(cp, &caml_jit_compile);          /* .quad caml_jit_compile */
+  }
   caml_jit_assert(cp == caml_jit_code_ptr + CAML_JIT_CODE_SIZE);
 
   /* Generate the NOPs in front of the compile trampoline.
@@ -141,8 +163,9 @@ void caml_jit_init()
    * end, all not yet compiled instructions will redirect
    * to the compile trampoline.
    */
-  caml_jit_code_end = caml_jit_code_ptr + CAML_JIT_CODE_SIZE - (27 + STOP);
-  for (cp = caml_jit_code_ptr + CAML_JIT_CODE_SIZE - 27; cp > caml_jit_code_end; )
+  cp = caml_jit_code_end;
+  caml_jit_code_end -= STOP;
+  while (cp > caml_jit_code_end)
     *--cp = 0x90;
   caml_jit_assert(cp == caml_jit_code_end);
 

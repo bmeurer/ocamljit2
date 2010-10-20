@@ -195,41 +195,6 @@ void caml_jit_init()
 }
 
 
-static caml_jit_uint8_t *caml_jit_alloc_small(caml_jit_uint8_t *cp, mlsize_t wosize, tag_t tag)
-{
-  void *func;
-
-  caml_jit_assert(wosize > 0);
-  caml_jit_assert(tag <= 255);
-  caml_jit_assert(tag != Infix_tag);
-  caml_jit_assert(wosize <= Max_young_wosize);
-
-  switch (wosize) {
-  case 1:
-    func = &caml_jit_rt_alloc1;
-    break;
-
-  case 2:
-    func = &caml_jit_rt_alloc2;
-    break;
-
-  case 3:
-    func = &caml_jit_rt_alloc3;
-    break;
-
-  default:
-    jx86_movq_reg_imm(cp, JX86_R11, Bhsize_wosize(wosize));
-    func = &caml_jit_rt_allocN;
-    break;
-  }
-
-  jx86_call(cp, func);
-  jx86_movq_membase_imm(cp, JX86_RBX, 0 * 8, (caml_jit_uintptr_t) Make_header(wosize, tag, Caml_black));
-
-  return cp;
-}
-
-
 static code_t *caml_jit_pending_buffer = NULL;
 static int caml_jit_pending_capacity = 0;
 static int caml_jit_pending_size = 0;
@@ -606,7 +571,26 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
         jx86_leaq_reg_membase(cp, JX86_R14, JX86_R14, sp);
         sp = 0;
       }
-      cp = caml_jit_alloc_small(cp, wosize, Closure_tag);
+      switch (wosize) {
+      case 1:
+        addr = &caml_jit_rt_alloc1;
+        break;
+
+      case 2:
+        addr = &caml_jit_rt_alloc2;
+        break;
+
+      case 3:
+        addr = &caml_jit_rt_alloc3;
+        break;
+
+      default:
+        jx86_movq_reg_imm(cp, JX86_R11, Bhsize_wosize(wosize));
+        addr = &caml_jit_rt_allocN;
+        break;
+      }
+      jx86_call(cp, addr);
+      jx86_movq_membase_imm(cp, JX86_RBX, 0 * 8, Make_header(wosize, Closure_tag, Caml_black));
       jx86_movq_reg_imm(cp, JX86_RDX, (caml_jit_intptr_t) (pc + pc[0]));
       if (--num_vars >= 0) {
         jx86_movq_membase_reg(cp, JX86_RBX, num_funs * 16, JX86_RAX);

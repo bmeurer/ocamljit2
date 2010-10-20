@@ -1263,12 +1263,12 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
       /* load %r11 with the effective pc (for the exception case) */
       jx86_movq_reg_imm(cp, JX86_R11, pc + 2);
       /* load the operands */
-      jx86_movq_reg_reg(cp, JX86_RDX, JX86_RAX);
       jx86_movq_reg_membase(cp, JX86_RCX, JX86_R14, sp);
       sp += 8;
       jx86_sarq_reg_imm(cp, JX86_RAX, 1);
-      jx86_sarq_reg_imm(cp, JX86_RDX, 63);
       jx86_sarq_reg_imm(cp, JX86_RCX, 1);
+      /* %rdx:%rax <- sign-extend of %rax */
+      jx86_cqo(cp);
       /* flush the stack pointer */  
       if (sp != 0) {
         jx86_leaq_reg_membase(cp, JX86_R14, JX86_R14, sp);

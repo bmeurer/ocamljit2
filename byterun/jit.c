@@ -609,7 +609,7 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
         break;
 
       default:
-        jx86_movq_reg_imm(cp, JX86_R11, Bhsize_wosize(wosize));
+        jx86_movq_reg_imm(cp, JX86_R10, Bhsize_wosize(wosize));
         addr = &caml_jit_rt_allocN;
         break;
       }
@@ -1198,12 +1198,8 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
       jx86_movq_membase_imm(cp, JX86_RSP, 1 * 8, 0);
 
       /* restore local state */
-      jx86_movq_reg_imm(cp, JX86_RDI, &caml_young_limit);
-      jx86_movq_reg_imm(cp, JX86_RSI, &caml_stack_threshold);
       jx86_movq_reg_membase(cp, JX86_RBX, JX86_RBP, 0);
       jx86_movq_reg_membase(cp, JX86_R14, JX86_R15, 0);
-      jx86_movq_reg_membase(cp, JX86_RBP, JX86_RDI, 0);
-      jx86_movq_reg_membase(cp, JX86_R15, JX86_RSI, 0);
       jx86_movq_reg_membase(cp, JX86_R12, JX86_R14, 0);
 
       /* pop arguments/environment pointer off the stack */

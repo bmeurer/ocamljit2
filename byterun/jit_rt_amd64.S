@@ -143,7 +143,7 @@
 FUNCTION(G(caml_jit_rt_alloc1))
 .Lcaml_jit_rt_alloc1:
         subq    $(2*8), %rbx
-        cmpq    %rbp, %rbx
+        CMP_VAR(caml_young_limit, %rbx)
         jb      .Lcaml_jit_rt_alloc1_gc
         ret
 
@@ -159,7 +159,7 @@ FUNCTION(G(caml_jit_rt_alloc1))
 FUNCTION(G(caml_jit_rt_alloc2))
 .Lcaml_jit_rt_alloc2:
         subq    $(3*8), %rbx
-        cmpq    %rbp, %rbx
+        CMP_VAR(caml_young_limit, %rbx)
         jb      .Lcaml_jit_rt_alloc2_gc
         ret
 
@@ -175,25 +175,25 @@ FUNCTION(G(caml_jit_rt_alloc2))
 FUNCTION(G(caml_jit_rt_alloc3))
 .Lcaml_jit_rt_alloc3:
         subq    $(4*8), %rbx
-        cmpq    %rbp, %rbx
+        CMP_VAR(caml_young_limit, %rbx)
         jb      .Lcaml_jit_rt_alloc3_gc
         ret
 
         /* caml_jit_rt_allocN:
 	 *
-	 * Allocates a block of bhsize %r11 in the minor heap.
+	 * Allocates a block of bhsize %r10 in the minor heap.
 	 * Upon return %rbx points to the header of the newly
-	 * allocated block. %r11 is preserved across calls.
+	 * allocated block. %r10 is preserved across calls.
 	 */
 .Lcaml_jit_rt_allocN_gc:        
-        pushq   %r11                    /* preserve desired size */
-        addq    %r11, %rbx
+        pushq   %r10                    /* preserve desired size */
+        addq    %r10, %rbx
         call    .Lcaml_jit_rt_call_gc
-        popq    %r11                    /* recover desired size */
+        popq    %r10                    /* recover desired size */
 FUNCTION(G(caml_jit_rt_allocN))
 .Lcaml_jit_rt_allocN:
-        subq    %r11, %rbx
-        cmpq    %rbp, %rbx
+        subq    %r10, %rbx
+        CMP_VAR(caml_young_limit, %rbx)
         jb      .Lcaml_jit_rt_allocN_gc
         ret
 
@@ -222,8 +222,7 @@ FUNCTION(G(caml_jit_rt_allocN))
         andq    $-16, %rsp
         call    GCALL(caml_minor_collection)
         movq    %rbp, %rsp
-    /* Restore young limit and pointer */
-        LOAD_VAR(caml_young_limit, %rbp)
+    /* Restore young pointer */
         LOAD_VAR(caml_young_ptr, %rbx)
     /* Restore environment and accu from the Caml stack */
         movq    -1*8(%r14), %r12
@@ -318,7 +317,7 @@ FUNCTION(G(caml_jit_rt_makeblock3))
 	 */
 FUNCTION(G(caml_jit_rt_makeblockN))
     /* Allocate space in the minor heap */
-        leaq    8(, %rdi, 8), %r11
+        leaq    8(, %rdi, 8), %r10
         call    .Lcaml_jit_rt_allocN
     /* Calculate the number of stack arguments */
         leaq    -1(%rdi), %rcx
@@ -364,7 +363,7 @@ FUNCTION(G(caml_jit_rt_makefloatblock))
     /* Allocate in the minor heap */
         leaq    8(, %rdi, 8), %r11
         subq    %r11, %rbx
-        cmpq    %rbp, %rbx
+        CMP_VAR(caml_young_limit, %rbx)
     /* Setup for block initializing */
         movq    %rdi, %rcx      /* wosize */
         movlpd  (%rax), %xmm0   /* 1st double value */
@@ -465,7 +464,7 @@ FUNCTION(G(caml_jit_rt_grab_closure_and_return))
         shrq    $1, %r13
         addq    $3, %r13
     /* Allocate space in the minor heap */
-        leaq    8(, %r13, 8), %r11
+        leaq    8(, %r13, 8), %r10
         call    .Lcaml_jit_rt_allocN
     /* Setup for initialization below */
         cld
@@ -624,7 +623,7 @@ FUNCTION(G(caml_jit_rt_apply))
     /* Load environment pointer with closure */
         movq    %rax, %r12
     /* Check if we need to enlarge the Caml stack */
-        cmpq    %r15, %r14
+        CMP_VAR(caml_stack_threshold, %r14)
         movq    0*8(%rax), %rdi /* load %rdi with closure address */
         jb      .Lcaml_jit_rt_apply_realloc_stack
 .Lcaml_jit_rt_apply_check_signals:
@@ -643,9 +642,8 @@ FUNCTION(G(caml_jit_rt_apply))
         movl    $256, %edi
         call    GCALL(caml_realloc_stack)
         movq    %r14, %rsp
-    /* Restore stack pointer and threshold */
+    /* Restore stack pointer */
         LOAD_VAR(caml_extern_sp, %r14)
-        LOAD_VAR(caml_stack_threshold, %r15)
     /* Restore closure in %rax and closure address in %rdi */
         movq    %r12, %rax
         movq    0*8(%r12), %rdi
@@ -679,12 +677,9 @@ FUNCTION(G(caml_jit_rt_process_signal))
         andq    $-16, %rsp
         call    GCALL(caml_process_event)
         movq    %rbp, %rsp
-    /* Restore stack pointer and threshold */
-        LOAD_VAR(caml_extern_sp, %r14)
-        LOAD_VAR(caml_stack_threshold, %r15)
-    /* Restore young limit and pointer */
-        LOAD_VAR(caml_young_limit, %rbp)
+    /* Restore stack and young pointer */
         LOAD_VAR(caml_young_ptr, %rbx)
+        LOAD_VAR(caml_extern_sp, %r14)
     /* Restore local state from event frame */
         movq    0*8(%r14), %rax  /* accu */
         movq    3*8(%r14), %rdi  /* return address */
@@ -792,10 +787,8 @@ FUNCTION(G(caml_jit_rt_start))
         movq    %r8,  %r14      /* stack pointer */
         movq    %rdx, %r13      /* extra arguments */
         movq    %rcx, %r12      /* environment */
-    /* Load young limit/pointer and stack threshold */
-        LOAD_VAR(caml_young_limit, %rbp)
+    /* Load young pointer */
         LOAD_VAR(caml_young_ptr, %rbx)
-        LOAD_VAR(caml_stack_threshold, %r15)
 .Lcaml_jit_rt_start_enter:
     /* Preserve accu and code pointer on C stack */
         movq    %rax, 0*8(%rsp)
@@ -826,11 +819,9 @@ FUNCTION(G(caml_jit_rt_start))
 .Lcaml_jit_rt_start_caught:
     /* Load %rsi with the saved pc */
         movq    1*8(%rsp), %rsi
-    /* Reload young limit/pointer and stack pointer/threshold */
-        LOAD_VAR(caml_young_limit, %rbp)
+    /* Reload young and stack pointer */
         LOAD_VAR(caml_young_ptr, %rbx)
         LOAD_VAR(caml_extern_sp, %r14)
-        LOAD_VAR(caml_stack_threshold, %r15)
     /* Restore the local roots to its initial state */
         movq    3*8(%rsp), %r10
         STORE_VAR(%r10, caml_local_roots)

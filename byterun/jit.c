@@ -114,20 +114,18 @@ void caml_jit_init()
    * caml_jit_compile is within +/-2GB of code area, we
    * use the shorter (and faster) sequence:
    *
-   *   movq %rax, 0(%rsp)
-   *   call caml_jit_compile(%rip)
-   *   movq %rax, %rdx
-   *   movq  0(%rsp), %rax
-   *   jmpq *%rdx
+   *   xchgq %rax, %rbx
+   *   call  caml_jit_compile(%rip)
+   *   xchgq %rax, %rbx
+   *   jmpq *%rbx
    *
    * Otherwise we have to use an indirect call via a 64bit
    * pointer:
    *
-   *   movq  %rax, 0(%rsp)
-   *   callq 9(%rip)
-   *   movq  %rax, %dx
-   *   movq  0(%rsp), %rax
-   *   jmpq  *%rdx
+   *   xchgq %rax, %rbx
+   *   callq 4(%rip)
+   *   xchgq %rax, %rbx
+   *   jmpq  *%rbx
    *   .quad caml_jit_compile
    *
    * Assumes byte code address to compile is in %rdi and
@@ -136,26 +134,24 @@ void caml_jit_init()
    * return to not yet compiled code, where %rax contains
    * the return value.
    */
-  caml_jit_code_end = cp + CAML_JIT_CODE_SIZE - (4 + 5 + 3 + 4 + 2);
-  if (JX86_IS_IMM32((caml_jit_uint8_t *) &caml_jit_compile - (caml_jit_code_end + 4) - 5)) {
+  caml_jit_code_end = cp + CAML_JIT_CODE_SIZE - (2 + 5 + 2 + 2);
+  if (JX86_IS_IMM32((caml_jit_uint8_t *) &caml_jit_compile - caml_jit_code_end - 2 - 5)) {
     cp = caml_jit_code_end;
-    jx86_movq_membase_reg(cp, JX86_RSP, 0, JX86_RAX); /* movq %rax, 0(%rsp) */
-    jx86_call(cp, &caml_jit_compile);                 /* call caml_jit_compile(%rip) */
-    jx86_movq_reg_reg(cp, JX86_RDX, JX86_RAX);        /* movq %rax, %rdx */
-    jx86_movq_reg_membase(cp, JX86_RAX, JX86_RSP, 0); /* movq 0(%rsp), %rax */
-    jx86_jmpq_reg(cp, JX86_RDX);                      /* jmpq *%rdx */
+    jx86_xchgq_reg_reg(cp, JX86_RBX, JX86_RAX); /* xchgq %rax, %rbx */
+    jx86_call(cp, &caml_jit_compile);           /* call  caml_jit_compile(%rip) */
+    jx86_xchgq_reg_reg(cp, JX86_RAX, JX86_RBX); /* xchgq %rbx, %rax */
+    jx86_jmpq_reg(cp, JX86_RBX);                /* jmpq *%rbx */
   }
   else {
     caml_jit_code_end = (caml_jit_code_end + 5) - (6 + 8);
     cp = caml_jit_code_end;
-    jx86_movq_membase_reg(cp, JX86_RSP, 0, JX86_RAX); /* movq %rax, 0(%rsp) */
-    jx86_emit_uint8(cp, 0xff);                        /* callq 9(%rip) */
+    jx86_xchgq_reg_reg(cp, JX86_RBX, JX86_RAX); /* xchgq %rax, %rbx */
+    jx86_emit_uint8(cp, 0xff);                  /* callq 4(%rip) */
     jx86_emit_address_byte(cp, 0, 2, 5);
-    jx86_emit_int32(cp, 9);
-    jx86_movq_reg_reg(cp, JX86_RDX, JX86_RAX);        /* movq %rax, %rdx */
-    jx86_movq_reg_membase(cp, JX86_RAX, JX86_RSP, 0); /* movq 0(%rsp), %rax */
-    jx86_jmpq_reg(cp, JX86_RDX);                      /* jmpq *%rdx */
-    jx86_emit_uint64(cp, &caml_jit_compile);          /* .quad caml_jit_compile */
+    jx86_emit_int32(cp, 4);
+    jx86_xchgq_reg_reg(cp, JX86_RAX, JX86_RBX); /* xchgq %rbx, %rax */
+    jx86_jmpq_reg(cp, JX86_RBX);                /* jmpq  *%rbx */
+    jx86_emit_uint64(cp, &caml_jit_compile);    /* .quad caml_jit_compile */
   }
   caml_jit_assert(cp == caml_jit_code_ptr + CAML_JIT_CODE_SIZE);
 
@@ -174,7 +170,7 @@ void caml_jit_init()
 
   /* Setup the "raise zero divide" code (used by DIVINT/MODINT) */
   caml_jit_code_raise_zero_divide = cp;
-  jx86_movq_membase_reg(cp, JX86_RSP, 1 * 8, JX86_R11); /* saved_pc = pc */
+  jx86_movq_membase_reg(cp, JX86_RSP, 0 * 8, JX86_R11); /* saved_pc = pc */
   jx86_subq_reg_imm(cp, JX86_R14, 1 * 8);               /* *--sp = env */
   jx86_movq_membase_reg(cp, JX86_R14, 0 * 8, JX86_R12);
   jx86_movq_reg_imm(cp, JX86_R11, &caml_extern_sp);     /* caml_extern_sp = sp */
@@ -1187,15 +1183,15 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
       /* save stack pointer to caml_extern_sp */
       jx86_movq_membase_reg(cp, JX86_RBX, 0, JX86_R14);
 
-      /* save the pc to the reserved saved_pc area 1*8(%rsp) */
+      /* save the pc to the reserved saved_pc area 0*8(%rsp) */
       jx86_movq_reg_imm(cp, JX86_R11, pc + 1);
-      jx86_movq_membase_reg(cp, JX86_RSP, 1 * 8, JX86_R11);
+      jx86_movq_membase_reg(cp, JX86_RSP, 0 * 8, JX86_R11);
 
       /* call the primitive C function */
       jx86_call(cp, addr);
 
-      /* reset saved_pc area 1*8(%rsp) */
-      jx86_movq_membase_imm(cp, JX86_RSP, 1 * 8, 0);
+      /* reset saved_pc area 0*8(%rsp) */
+      jx86_movq_membase_imm(cp, JX86_RSP, 0 * 8, 0);
 
       /* restore local state */
       jx86_movq_reg_membase(cp, JX86_R15, JX86_RBP, 0);

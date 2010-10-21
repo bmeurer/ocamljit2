@@ -1899,6 +1899,60 @@ typedef enum
 #endif /* JX86_64 */
 
 
+/* XCHG instruction
+ * ----------------
+ */
+
+#define jx86_xchg_membase_reg(cp, breg, disp, sreg, size)       \
+  do {                                                          \
+    const jx86_reg_t _breg_ = (const jx86_reg_t) (breg);        \
+    const jx86_int32_t _disp_ = (const jx86_int32_t) (disp);    \
+    const jx86_reg_t _sreg_ = (const jx86_reg_t) (sreg);        \
+    const unsigned _size_ = (const unsigned) (size);            \
+    jx86_emit_osprex((cp), _size_, _sreg_, 0, _breg_);          \
+    jx86_emit_opcode1((cp), _size_, 0x86);                      \
+    jx86_emit_membase((cp), _sreg_, _breg_, _disp_);            \
+  } while (0)
+
+#define jx86_xchg_reg_membase(cp, dreg, breg, disp, size)       \
+  jx86_xchg_membase_reg((cp), (breg), (disp), (dreg), (size))
+
+#define jx86_xchg_reg_reg(cp, dreg, sreg, size)                 \
+  do {                                                          \
+    const jx86_reg_t _dreg_ = (const jx86_reg_t) (dreg);        \
+    const jx86_reg_t _sreg_ = (const jx86_reg_t) (sreg);        \
+    const unsigned _size_ = (const unsigned) (size);            \
+    if (_dreg_ == JX86_EAX && _size_ != 1) {                    \
+      jx86_emit_osprex((cp), _size_, 0, 0, _sreg_);             \
+      jx86_emit_uint8((cp), 0x90 + JX86_REG_CODE(_sreg_));      \
+    }                                                           \
+    else if (_sreg_ == JX86_EAX && _size_ != 1) {               \
+      jx86_emit_osprex((cp), _size_, 0, 0, _dreg_);             \
+      jx86_emit_uint8((cp), 0x90 + JX86_REG_CODE(_dreg_));      \
+    }                                                           \
+    else {                                                      \
+      jx86_emit_osprex((cp), _size_, _dreg_, 0, _sreg_);        \
+      jx86_emit_opcode1((cp), _size_, 0x86);                    \
+      jx86_emit_reg((cp), _sreg_, _dreg_);                      \
+    }                                                           \
+  } while (0)
+
+#define jx86_xchgb_membase_reg(cp, breg, disp, sreg)  jx86_xchg_membase_reg((cp), (breg), (disp), (sreg), 1)
+#define jx86_xchgb_reg_membase(cp, dreg, breg, disp)  jx86_xchg_reg_membase((cp), (dreg), (breg), (disp), 1)
+#define jx86_xchgb_reg_reg(cp, dreg, sreg)            jx86_xchg_reg_reg((cp), (dreg), (sreg), 1)
+#define jx86_xchgw_membase_reg(cp, breg, disp, sreg)  jx86_xchg_membase_reg((cp), (breg), (disp), (sreg), 2)
+#define jx86_xchgw_reg_membase(cp, dreg, breg, disp)  jx86_xchg_reg_membase((cp), (dreg), (breg), (disp), 2)
+#define jx86_xchgw_reg_reg(cp, dreg, sreg)            jx86_xchg_reg_reg((cp), (dreg), (sreg), 2)
+#define jx86_xchgl_membase_reg(cp, breg, disp, sreg)  jx86_xchg_membase_reg((cp), (breg), (disp), (sreg), 4)
+#define jx86_xchgl_reg_membase(cp, dreg, breg, disp)  jx86_xchg_reg_membase((cp), (dreg), (breg), (disp), 4)
+#define jx86_xchgl_reg_reg(cp, dreg, sreg)            jx86_xchg_reg_reg((cp), (dreg), (sreg), 4)
+#ifdef JX86_64
+# define jx86_xchgq_membase_reg(cp, breg, disp, sreg) jx86_xchg_membase_reg((cp), (breg), (disp), (sreg), 8)
+# define jx86_xchgq_reg_membase(cp, dreg, breg, disp) jx86_xchg_reg_membase((cp), (dreg), (breg), (disp), 8)
+# define jx86_xchgq_reg_reg(cp, dreg, sreg)           jx86_xchg_reg_reg((cp), (dreg), (sreg), 8)
+#endif
+
+
 /* SSE instructions
  * ----------------
  */

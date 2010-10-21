@@ -431,7 +431,7 @@ FUNCTION(G(caml_jit_rt_makeshrblock))
     /* Allocate a block in the major heap */
         movq    %rdi, %r13      /* preserve wosize in %r13 */
         call    GCALL(caml_alloc_shr)
-        movq    %rax, 0*8(%rsp) /* save block pointer */
+        movq    %rax, %rbx      /* save block pointer in %rbx */
         movq    %rax, %r12
         .p2align 3
 .Lcaml_jit_rt_makeshrblock_regular_loop:
@@ -443,7 +443,7 @@ FUNCTION(G(caml_jit_rt_makeshrblock))
         leaq    1*8(%r12), %r12
         jnz     .Lcaml_jit_rt_makeshrblock_regular_loop
 .Lcaml_jit_rt_makeshrblock_done:
-        movq    0*8(%rsp), %rax /* restore block pointer */
+        movq    %rbx, %rax      /* restore block pointer */
         movq    %rbp, %rsp
         popq    %rbp
         popq    %r13
@@ -701,16 +701,16 @@ FUNCTION(G(caml_jit_rt_raise))
     /* Stash backtrace if enabled (pc in %rsi) */
         TESTL_VAR($-1, caml_backtrace_active)
         jz      .Lcaml_jit_rt_raise1
-        movq    %rax, 0*8(%rsp)         /* preserve %rax */
+        movq    %rax, %rbx              /* preserve %rax */
         movq    %rax, %rdi
         movq    %r14, %rdx
         call    GCALL(caml_stash_backtrace)
-        movq    0*8(%rsp), %rax         /* restore %rax */
+        movq    %rbx, %rax              /* restore %rax */
 .Lcaml_jit_rt_raise1:        
     /* Check if we need to throw the exception back to C code */
         LOAD_VAR(caml_stack_high, %r14)
         LOAD_VAR(caml_trapsp, %r10)
-        subq    2*8(%rsp), %r14
+        subq    1*8(%rsp), %r14
         cmpq    %r14, %r10              /* caml_trapsp >= caml_stack_high - initial_sp_offset */
         jge     .Lcaml_jit_rt_stop_exn
 .Lcaml_jit_rt_raise2:        
@@ -740,12 +740,11 @@ FUNCTION(G(caml_jit_rt_raise))
 	 *
 	 * C stack layout during execution:
 	 *
-	 *  0*8(%rsp) - saved accu (for compile trampoline)
-	 *  1*8(%rsp) - saved_pc (for backtrace)
-	 *  2*8(%rsp) - initial sp offset
-	 *  3*8(%rsp) - initial local roots
-	 *  4*8(%rsp) - initial external raise
-	 *  5*8(%rsp) - start of sigjmp buffer (SIZEOF_SIGJMPBUF bytes + padding)
+	 *  0*8(%rsp) - saved_pc (for backtrace)
+	 *  1*8(%rsp) - initial sp offset
+	 *  2*8(%rsp) - initial local roots
+	 *  3*8(%rsp) - initial external raise
+	 *  4*8(%rsp) - start of sigjmp buffer (SIZEOF_SIGJMPBUF bytes + padding)
 	 */
 FUNCTION(G(caml_jit_rt_start))
     /* Push callee-save registers */
@@ -770,16 +769,15 @@ FUNCTION(G(caml_jit_rt_start))
      * - initial local roots    (8 byte)
      * - initial sp offset      (8 byte)
      * - saved_pc               (8 byte)
-     * - saved accu             (8 byte)
      *
      * Round everything to an odd number of longs, so C stack
      * is aligned on a 16-byte boundary afterwards.
      */
-        subq    $((((SIZEOF_SIGJMPBUF + 7) / 8 + 5) | 1) * 8), %rsp
+        subq    $((((SIZEOF_SIGJMPBUF + 7) / 8 + 4) | 1) * 8), %rsp
     /* Save initial sp offset, local roots and external raise */
-        movq    %r15, 2*8(%rsp) /* initial sp offset */
-        movq    %r14, 3*8(%rsp) /* initial local roots */
-        movq    %r13, 4*8(%rsp) /* initial external raise */
+        movq    %r15, 1*8(%rsp) /* initial sp offset */
+        movq    %r14, 2*8(%rsp) /* initial local roots */
+        movq    %r13, 3*8(%rsp) /* initial external raise */
     /* Setup machine state */
         movq    %rsi, %rax      /* accu */
         movq    %r8,  %r14      /* stack pointer */
@@ -788,11 +786,11 @@ FUNCTION(G(caml_jit_rt_start))
     /* Load young pointer */
         LOAD_VAR(caml_young_ptr, %r15)
 .Lcaml_jit_rt_start_enter:
-    /* Preserve accu and code pointer on C stack */
-        movq    %rax, 0*8(%rsp)
-        movq    %rdi, 1*8(%rsp)
+    /* Preserve accu in %rbx and code pointer on C stack */
+        movq    %rax, %rbx
+        movq    %rdi, 0*8(%rsp)
     /* Setup the sigjmp buffer */
-        leaq    5*8(%rsp), %rdi /* sigjmp_buf */
+        leaq    4*8(%rsp), %rdi /* sigjmp_buf */
         xorl    %esi, %esi
 #if defined(HAS_SIGSETJMP)
         call    GCALL(sigsetjmp)
@@ -804,24 +802,23 @@ FUNCTION(G(caml_jit_rt_start))
         testl   %eax, %eax
     /* Check if we caught an exception from C code */
         jnz     .Lcaml_jit_rt_start_caught
-    /* Restore accu and code pointer */
-        movq    0*8(%rsp), %rax
-        movq    1*8(%rsp), %rdi
-    /* Reset saved_pc */
-        movq    $0, 1*8(%rsp)
+    /* Restore accu and code pointer (and reset saved_pc to NULL) */
+        xorl    %edi, %edi
+        movq    %rbx, %rax
+        xchgq   %rdi, 0*8(%rsp)
     /* Setup the new external raise buffer */
-        leaq    5*8(%rsp), %r10
+        leaq    4*8(%rsp), %r10
         STORE_VAR(%r10, caml_external_raise)
     /* Jump to the code */
         jmp     .Lcaml_jit_rt_trampoline
 .Lcaml_jit_rt_start_caught:
     /* Load %rsi with the saved pc */
-        movq    1*8(%rsp), %rsi
+        movq    0*8(%rsp), %rsi
     /* Reload stack and young pointer */
         LOAD_VAR(caml_extern_sp, %r14)
         LOAD_VAR(caml_young_ptr, %r15)
     /* Restore the local roots to its initial state */
-        movq    3*8(%rsp), %r10
+        movq    2*8(%rsp), %r10
         STORE_VAR(%r10, caml_local_roots)
     /* Load the exception object */
         LOAD_VAR(caml_exn_bucket, %rax)
@@ -841,14 +838,14 @@ FUNCTION(G(caml_jit_rt_stop))
         STORE_VAR(%r14, caml_extern_sp)
         STORE_VAR(%r15, caml_young_ptr)
     /* Restore caml_external_raise and caml_local_roots to its initial state */
-        movq    3*8(%rsp), %r8          /* initial local roots */
-        movq    4*8(%rsp), %r9          /* initial external raise */
+        movq    2*8(%rsp), %r8          /* initial local roots */
+        movq    3*8(%rsp), %r9          /* initial external raise */
         STORE_VAR(%r8, caml_local_roots)
         STORE_VAR(%r9, caml_external_raise)
     /* Decrement callback counter */
         DECL_VAR(caml_callback_depth)
     /* Pop callee-save registers */
-        addq    $((((SIZEOF_SIGJMPBUF + 7) / 8 + 5) | 1) * 8), %rsp
+        addq    $((((SIZEOF_SIGJMPBUF + 7) / 8 + 4) | 1) * 8), %rsp
         popq    %r15
         popq    %r14
         popq    %r13

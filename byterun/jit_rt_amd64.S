@@ -769,7 +769,7 @@ FUNCTION(G(caml_jit_rt_start))
      * Round everything to an odd number of longs, so C stack
      * is aligned on a 16-byte boundary afterwards.
      */
-        subq    $((((SIZEOF_SIGJMPBUF + 7) / 8 + 4) | 1) * 8), %rsp
+        subq    $(((SIZEOF_SIGJMPBUF + 15) / 16 + 2) * 16 + 8), %rsp
     /* Save initial sp offset, local roots and external raise */
         movq    %r15, 1*8(%rsp) /* initial sp offset */
         movq    %r14, 2*8(%rsp) /* initial local roots */
@@ -841,7 +841,7 @@ FUNCTION(G(caml_jit_rt_stop))
     /* Decrement callback counter */
         DECL_VAR(caml_callback_depth)
     /* Pop callee-save registers */
-        addq    $((((SIZEOF_SIGJMPBUF + 7) / 8 + 4) | 1) * 8), %rsp
+        addq    $(((SIZEOF_SIGJMPBUF + 15) / 16 + 2) * 16 + 8), %rsp
         popq    %r15
         popq    %r14
         popq    %r13

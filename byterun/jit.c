@@ -118,14 +118,16 @@ void caml_jit_init()
    *   call  caml_jit_compile(%rip)
    *   xchgq %rax, %rbx
    *   jmpq *%rbx
+   *   ud2
    *
    * Otherwise we have to use an indirect call via a 64bit
    * pointer:
    *
    *   xchgq %rax, %rbx
-   *   callq 4(%rip)
+   *   callq 6(%rip)
    *   xchgq %rax, %rbx
    *   jmpq  *%rbx
+   *   ud2
    *   .quad caml_jit_compile
    *
    * Assumes byte code address to compile is in %rdi and
@@ -133,24 +135,30 @@ void caml_jit_init()
    * since the compile trampoline may also be used to
    * return to not yet compiled code, where %rax contains
    * the return value.
+   *
+   * The UD2 instruction following the indirect jump is
+   * used to stop the processor from decoding down the
+   * fall-through path.
    */
-  caml_jit_code_end = cp + CAML_JIT_CODE_SIZE - (2 + 5 + 2 + 2);
+  caml_jit_code_end = cp + CAML_JIT_CODE_SIZE - (2 + 5 + 2 + 2 + 2);
   if (JX86_IS_IMM32((caml_jit_uint8_t *) &caml_jit_compile - caml_jit_code_end - 2 - 5)) {
     cp = caml_jit_code_end;
     jx86_xchgq_reg_reg(cp, JX86_RBX, JX86_RAX); /* xchgq %rax, %rbx */
     jx86_call(cp, &caml_jit_compile);           /* call  caml_jit_compile(%rip) */
     jx86_xchgq_reg_reg(cp, JX86_RAX, JX86_RBX); /* xchgq %rbx, %rax */
     jx86_jmpq_reg(cp, JX86_RBX);                /* jmpq *%rbx */
+    jx86_ud2(cp);                               /* ud2 */
   }
   else {
     caml_jit_code_end = (caml_jit_code_end + 5) - (6 + 8);
     cp = caml_jit_code_end;
     jx86_xchgq_reg_reg(cp, JX86_RBX, JX86_RAX); /* xchgq %rax, %rbx */
-    jx86_emit_uint8(cp, 0xff);                  /* callq 4(%rip) */
+    jx86_emit_uint8(cp, 0xff);                  /* callq 6(%rip) */
     jx86_emit_address_byte(cp, 0, 2, 5);
-    jx86_emit_int32(cp, 4);
+    jx86_emit_int32(cp, 6);
     jx86_xchgq_reg_reg(cp, JX86_RAX, JX86_RBX); /* xchgq %rbx, %rax */
     jx86_jmpq_reg(cp, JX86_RBX);                /* jmpq  *%rbx */
+    jx86_ud2(cp);                               /* ud2 */
     jx86_emit_uint64(cp, &caml_jit_compile);    /* .quad caml_jit_compile */
   }
   caml_jit_assert(cp == caml_jit_code_ptr + CAML_JIT_CODE_SIZE);
@@ -950,6 +958,10 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
         jx86_movb_reg_membase(cp, JX86_CL, JX86_RAX, -8);
         jx86_jmpq_memindex(cp, JX86_RDX, num_consts * 8, JX86_RCX, 3);
       }
+      /* stuff an UD2 instruction after the indirect branch to stop
+       * the processor from decoding down the fall-through path.
+       */
+      jx86_ud2(cp);
       jx86_leaq_reg_patch(cp, leaq);
       for (i = 0; i < num_consts + num_blocks; ++i) {
         code_t dpc = pc + pc[i];

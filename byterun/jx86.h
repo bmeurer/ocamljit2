@@ -1899,6 +1899,16 @@ typedef enum
 #endif /* JX86_64 */
 
 
+/* UD2 instruction
+ * ---------------
+ */
+
+#define jx86_ud2(cp)                            \
+  do {                                          \
+    jx86_emit_uint16((cp), 0x0b0f);             \
+  } while (0)
+
+
 /* XCHG instruction
  * ----------------
  */

@@ -164,7 +164,7 @@ void caml_jit_init()
    * to the compile trampoline.
    */
   cp = caml_jit_code_end;
-  caml_jit_code_end -= STOP;
+  caml_jit_code_end -= BREAK;
   while (cp > caml_jit_code_end)
     *--cp = 0x90;
   caml_jit_assert(cp == caml_jit_code_end);
@@ -213,7 +213,7 @@ void caml_jit_init()
   jx86_ret(cp);
 #endif
 
-  caml_jit_code_base = cp - (STOP + 1);
+  caml_jit_code_base = cp - (BREAK + 1);
   caml_jit_code_ptr = cp;
 }
 
@@ -266,7 +266,7 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
 #endif
 
   caml_jit_assert(pc != NULL);
-  caml_jit_assert(*pc >= 0 && *pc <= STOP);
+  caml_jit_assert(*pc >= 0 && *pc <= BREAK);
   caml_jit_assert(caml_jit_pending_size >= 0);
   caml_jit_assert(caml_jit_code_base != NULL);
   caml_jit_assert(caml_jit_code_ptr < caml_jit_code_end);
@@ -323,7 +323,7 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
     }
 
     /* patch forward jccs/jmps to this byte code address */
-    while (CAML_JIT_GNUC_UNLIKELY (instr > STOP)) {
+    while (CAML_JIT_GNUC_UNLIKELY (instr > BREAK)) {
       caml_jit_uint8_t *jcp = caml_jit_code_base + instr;
 
       /* flush the stack pointer */
@@ -348,7 +348,7 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
     }
 
     caml_jit_assert(instr >= 0);
-    caml_jit_assert(instr <= STOP);
+    caml_jit_assert(instr <= BREAK);
     caml_jit_assert((sp % 8) == 0);
     caml_jit_assert(cp < caml_jit_code_end);
     caml_jit_assert(cp > caml_jit_code_base);
@@ -900,7 +900,7 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
           caml_jit_assert(offset > STOP);
           caml_jit_assert(offset <= CAML_JIT_INT32_MAX);
 
-          if (*pc > STOP) {
+          if (*pc > BREAK) {
             /* "then" address is already on the pending list */
             caml_jit_assert(caml_jit_pending_contains(pc));
             jx86_jcc32_forward(cp, op ^ 1);
@@ -910,7 +910,7 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
           }
           else {
             /* add "else" address if not already pending */
-            if (*dpc <= STOP)
+            if (*dpc <= BREAK)
               caml_jit_pending_add(dpc);
             caml_jit_assert(caml_jit_pending_contains(dpc));
             jx86_jcc32_forward(cp, op);
@@ -965,11 +965,11 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
           caml_jit_intptr_t offset = cp - caml_jit_code_base;
 
           caml_jit_assert(*dpc >= 0);
-          caml_jit_assert(offset > STOP);
+          caml_jit_assert(offset > BREAK);
           caml_jit_assert(offset <= CAML_JIT_INT32_MAX);
 
           /* add address if not already pending */
-          if (*dpc <= STOP)
+          if (*dpc <= BREAK)
             caml_jit_pending_add(dpc);
           caml_jit_assert(caml_jit_pending_contains(dpc));
           jx86_emit_uint8(cp, 0);

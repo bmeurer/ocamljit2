@@ -390,19 +390,17 @@ FUNCTION(G(caml_jit_rt_makefloatblock))
         ret
     /* Allocate the float block in the major heap */
 .Lcaml_jit_rt_makefloatblock_shr:
-        subq    $(3*8), %rsp
+        subq    $(2*8), %rsp
         movq    %rcx,  0*8(%rsp)
-        movq    %rbp,  1*8(%rsp)
-        movlpd  %xmm0, 2*8(%rsp)
+        movlpd  %xmm0, 1*8(%rsp)
         movl    $254, %esi
         movq    %rsp, %rbp
         andq    $-16, %rsp
         call    GCALL(caml_alloc_shr)
         movq    %rbp, %rsp
         movq    0*8(%rsp), %rcx
-        movq    1*8(%rsp), %rbp
-        movlpd  2*8(%rsp), %xmm0
-        addq    $(3*8), %rsp
+        movlpd  1*8(%rsp), %xmm0
+        addq    $(2*8), %rsp
         movq    %rax, %rdx
         jmp     .Lcaml_jit_rt_makefloatblock_loop_1
         
@@ -422,7 +420,6 @@ FUNCTION(G(caml_jit_rt_makeshrblock))
     /* Align C stack on 16-byte boundary */
         pushq   %r12
         pushq   %r13
-        pushq   %rbp
         movq    %rsp, %rbp
         andq    $-16, %rsp
     /* Push %rax onto the Caml stack */
@@ -445,7 +442,6 @@ FUNCTION(G(caml_jit_rt_makeshrblock))
 .Lcaml_jit_rt_makeshrblock_done:
         movq    %rbx, %rax      /* restore block pointer */
         movq    %rbp, %rsp
-        popq    %rbp
         popq    %r13
         popq    %r12
         ret

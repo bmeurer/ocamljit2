@@ -117,6 +117,7 @@ void caml_jit_init()
    *   movq %rax, 0(%rsp)
    *   call caml_jit_compile(%rip)
    *   movq %rax, %rdx
+   *   movq  0(%rsp), %rax
    *   jmpq *%rdx
    *
    * Otherwise we have to use an indirect call via a 64bit

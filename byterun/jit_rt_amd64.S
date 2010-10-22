@@ -798,10 +798,11 @@ FUNCTION(G(caml_jit_rt_start))
         testl   %eax, %eax
     /* Check if we caught an exception from C code */
         jnz     .Lcaml_jit_rt_start_caught
-    /* Restore accu and code pointer (and reset saved_pc to NULL) */
-        xorl    %edi, %edi
+    /* Restore accu and code pointer */
+        movq    0*8(%rsp), %rdi
         movq    %rbx, %rax
-        xchgq   %rdi, 0*8(%rsp)
+    /* Reset saved_pc to NULL */
+        movq    $0, 0*8(%rsp)
     /* Setup the new external raise buffer */
         leaq    4*8(%rsp), %r10
         STORE_VAR(%r10, caml_external_raise)

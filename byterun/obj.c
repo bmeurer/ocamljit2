@@ -232,7 +232,7 @@ value caml_cache_public_method (value meths, value tag, value *cache)
   return Field (meths, li-1);
 }
 
-value caml_cache_public_method2 (value *meths, value tag, value *cache)
+value caml_cache_public_method2 (value *meths, value tag, opcode_t *cache)
 {
   value ofs = *cache & meths[1];
   if (*(value*)(((char*)(meths+3)) + ofs - MARK) == tag)

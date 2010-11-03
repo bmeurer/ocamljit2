@@ -24,6 +24,7 @@
 #include "instrtrace.h"
 #include "instruct.h"
 #include "interp.h"
+#include "jit_rt.h"
 #include "major_gc.h"
 #include "memory.h"
 #include "misc.h"
@@ -233,8 +234,21 @@ value caml_interprete(code_t prog, asize_t prog_size)
     caml_instr_table = (char **) jumptable;
     caml_instr_base = Jumptbl_base;
 #endif
+#ifdef CAML_JIT
+    caml_jit_init();
+#endif
     return Val_unit;
   }
+
+#ifdef CAML_JIT
+  if (caml_jit_enabled) {
+    /* ensure to register the code block */
+    caml_prepare_bytecode(prog, prog_size);
+
+    /* enter the JIT engine */
+    return caml_jit_rt_start(prog, Val_int(0), Val_int(0), Atom(0), caml_extern_sp);
+  }
+#endif
 
 #if defined(THREADED_CODE) && defined(ARCH_SIXTYFOUR) && !defined(ARCH_CODE32)
   jumptbl_base = Jumptbl_base;
@@ -1130,6 +1144,7 @@ value caml_interprete(code_t prog, asize_t prog_size)
 #endif
 }
 
+#ifndef CAML_JIT
 void caml_prepare_bytecode(code_t prog, asize_t prog_size) {
   /* other implementations of the interpreter (such as an hypothetical
      JIT translator) might want to do something with a bytecode before
@@ -1146,3 +1161,4 @@ void caml_release_bytecode(code_t prog, asize_t prog_size) {
   Assert(prog);
   Assert(prog_size>0);
 }
+#endif /*!CAML_JIT*/

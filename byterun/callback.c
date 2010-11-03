@@ -27,6 +27,7 @@
 
 #include "interp.h"
 #include "instruct.h"
+#include "jit_rt.h"
 #include "fix_code.h"
 #include "stacks.h"
 
@@ -55,11 +56,13 @@ static void thread_callback(void)
 
 #endif
 
-#ifndef CAML_JIT
 CAMLexport value caml_callbackN_exn(value closure, int narg, value args[])
 {
   int i;
   value res;
+#ifdef CAML_JIT
+  value *sp;
+#endif
 
   /* some alternate bytecode implementations (e.g. a JIT translator)
      might require that the bytecode is kept in a local variable on
@@ -70,39 +73,63 @@ CAMLexport value caml_callbackN_exn(value closure, int narg, value args[])
 
   Assert(narg + 4 <= 256);
 
-  caml_extern_sp -= narg + 4;
-  for (i = 0; i < narg; i++) caml_extern_sp[i] = args[i]; /* arguments */
+#ifdef CAML_JIT
+  if (caml_jit_enabled) {
+    /* reserve stack space for the arguments and return frame */
+    sp = caml_extern_sp - (narg + 3);
+
+    /* move the arguments onto the stack */
+    for (i = 0; i < narg; ++i) sp[i] = args[i];
+
+    /* add a RETURN frame below */
+    sp[i++] = (value) &caml_jit_callback_return; /* return address */
+    sp[i++] = Val_unit;                          /* environment */
+    sp[i++] = Val_long(0);                       /* extra arguments */
+
+    /* execute the closure's code */
+    res = caml_jit_rt_start(Code_val(closure), closure, Val_long(narg - 1), closure, sp);
+
+    /* adjust stack pointer in case of exception */
+    if (Is_exception_result(res)) caml_extern_sp += narg + 3;
+  }
+  else {
+#endif /* CAML_JIT */
+    caml_extern_sp -= narg + 4;
+    for (i = 0; i < narg; i++) caml_extern_sp[i] = args[i]; /* arguments */
 #ifndef LOCAL_CALLBACK_BYTECODE
-  caml_extern_sp[narg] = (value) (callback_code + 4); /* return address */
-  caml_extern_sp[narg + 1] = Val_unit;    /* environment */
-  caml_extern_sp[narg + 2] = Val_long(0); /* extra args */
-  caml_extern_sp[narg + 3] = closure;
-  Init_callback();
-  callback_code[1] = narg + 3;
-  callback_code[3] = narg;
-  res = caml_interprete(callback_code, sizeof(callback_code));
+    caml_extern_sp[narg] = (value) (callback_code + 4); /* return address */
+    caml_extern_sp[narg + 1] = Val_unit;    /* environment */
+    caml_extern_sp[narg + 2] = Val_long(0); /* extra args */
+    caml_extern_sp[narg + 3] = closure;
+    Init_callback();
+    callback_code[1] = narg + 3;
+    callback_code[3] = narg;
+    res = caml_interprete(callback_code, sizeof(callback_code));
 #else /*have LOCAL_CALLBACK_BYTECODE*/
-  caml_extern_sp[narg] = (value) (local_callback_code + 4); /* return address */
-  caml_extern_sp[narg + 1] = Val_unit;    /* environment */
-  caml_extern_sp[narg + 2] = Val_long(0); /* extra args */
-  caml_extern_sp[narg + 3] = closure;
-  local_callback_code[0] = ACC;
-  local_callback_code[1] = narg + 3;
-  local_callback_code[2] = APPLY;
-  local_callback_code[3] = narg;
-  local_callback_code[4] = POP;
-  local_callback_code[5] =  1;
-  local_callback_code[6] = STOP;
+    caml_extern_sp[narg] = (value) (local_callback_code + 4); /* return address */
+    caml_extern_sp[narg + 1] = Val_unit;    /* environment */
+    caml_extern_sp[narg + 2] = Val_long(0); /* extra args */
+    caml_extern_sp[narg + 3] = closure;
+    local_callback_code[0] = ACC;
+    local_callback_code[1] = narg + 3;
+    local_callback_code[2] = APPLY;
+    local_callback_code[3] = narg;
+    local_callback_code[4] = POP;
+    local_callback_code[5] =  1;
+    local_callback_code[6] = STOP;
 #ifdef THREADED_CODE
-  caml_thread_code(local_callback_code, sizeof(local_callback_code));
+    caml_thread_code(local_callback_code, sizeof(local_callback_code));
 #endif /*THREADED_CODE*/
-  res = caml_interprete(local_callback_code, sizeof(local_callback_code));
-  caml_release_bytecode(local_callback_code, sizeof(local_callback_code));
+    res = caml_interprete(local_callback_code, sizeof(local_callback_code));
+    caml_release_bytecode(local_callback_code, sizeof(local_callback_code));
 #endif /*LOCAL_CALLBACK_BYTECODE*/
-  if (Is_exception_result(res)) caml_extern_sp += narg + 4; /* PR#1228 */
+    if (Is_exception_result(res)) caml_extern_sp += narg + 4; /* PR#1228 */
+#ifdef CAML_JIT
+  }
+#endif /*CAML_JIT*/
+
   return res;
 }
-#endif /* !CAML_JIT */
 
 CAMLexport value caml_callback_exn(value closure, value arg1)
 {

@@ -53,7 +53,7 @@ extern value caml_ge_float(value, value);
 extern value caml_gt_float(value, value);
 
 /* from obj.c */
-extern value caml_cache_public_method2(value *, value, value *);
+extern value caml_cache_public_method2(value *, value, opcode_t *);
 
 
 static caml_jit_uint8_t *caml_jit_compile(code_t pc);
@@ -64,7 +64,8 @@ caml_jit_uint8_t *caml_jit_code_base = NULL;
 caml_jit_uint8_t *caml_jit_code_end = NULL;
 caml_jit_uint8_t *caml_jit_code_ptr = NULL;
 static caml_jit_uint8_t *caml_jit_code_raise_zero_divide = NULL;
-static opcode_t caml_jit_callback_return; /* for caml_callbackN_exn */
+opcode_t caml_jit_callback_return = 0; /* for caml_callbackN_exn */
+unsigned caml_jit_enabled = 0;
 
 
 #ifdef DEBUG
@@ -100,6 +101,11 @@ void caml_jit_init()
 
   /* check if already initialized */
   if (caml_jit_code_base != NULL)
+    return;
+
+  /* the JIT engine is incompatible with ocamldebug */
+  caml_jit_enabled = (getenv("CAML_DEBUG_SOCKET") == NULL);
+  if (CAML_JIT_GNUC_UNLIKELY (!caml_jit_enabled))
     return;
 
   /* allocate memory for the JIT code */
@@ -271,6 +277,7 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
 #endif
 
   caml_jit_assert(pc != NULL);
+  caml_jit_assert(caml_jit_enabled);
   caml_jit_assert(*pc >= 0 && *pc <= BREAK);
   caml_jit_assert(caml_jit_pending_size >= 0);
   caml_jit_assert(caml_jit_code_base != NULL);
@@ -1451,12 +1458,6 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
     }
   }
 
-#if 0 // TODO
-  fprintf(stderr, "CODE SIZE: %ldB (TOTAL: %ldB)\n",
-          cp - caml_jit_code_ptr,
-          cp - caml_jit_code_base);
-#endif
-
   addr = caml_jit_code_ptr;
   caml_jit_code_ptr = cp;
 
@@ -1470,25 +1471,6 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
 }
 
 
-value caml_interprete(code_t prog, asize_t prog_size)
-{
-  if (CAML_JIT_GNUC_UNLIKELY (prog == NULL)) {
-    /* interpreter is initializing */
-    caml_jit_init();
-    return Val_unit;
-  }
-
-  caml_jit_assert(prog != NULL);
-  caml_jit_assert(prog_size > 0);
-  caml_jit_assert((prog_size % sizeof(*prog)) == 0);
-
-  /* ensure to register the code block */
-  caml_prepare_bytecode(prog, prog_size);
-
-  return caml_jit_rt_start(prog, Val_int(0), Val_int(0), Atom(0), caml_extern_sp);
-}
-
-
 void caml_prepare_bytecode(code_t prog, asize_t prog_size)
 {
   caml_jit_block_t  *block;
@@ -1499,27 +1481,29 @@ void caml_prepare_bytecode(code_t prog, asize_t prog_size)
   caml_jit_assert(prog_size > 0);
   caml_jit_assert((prog_size % sizeof(*prog)) == 0);
 
-  pend = prog + (prog_size / sizeof(*prog));
-
-  /* register the code block (if not already registered) */
-  for (blockp = &caml_jit_block_head;;) {
-    block = *blockp;
-    if (block == NULL) {
-      /* we have a new code block here */
-      block = (caml_jit_block_t *) malloc(sizeof(*block));
-      block->block_prog = prog;
-      block->block_pend = pend;
-      block->block_next = NULL;
-      *blockp = block;
-      break;
+  if (CAML_JIT_GNUC_LIKELY (caml_jit_enabled)) {
+    pend = prog + (prog_size / sizeof(*prog));
+    
+    /* register the code block (if not already registered) */
+    for (blockp = &caml_jit_block_head;;) {
+      block = *blockp;
+      if (block == NULL) {
+        /* we have a new code block here */
+        block = (caml_jit_block_t *) malloc(sizeof(*block));
+        block->block_prog = prog;
+        block->block_pend = pend;
+        block->block_next = NULL;
+        *blockp = block;
+        break;
+      }
+      else if (block->block_prog == prog && block->block_pend == pend) {
+        /* we know this block already */
+        break;
+      }
+      caml_jit_assert(prog >= block->block_pend
+                      || pend < block->block_prog);
+      blockp = &block->block_next;
     }
-    else if (block->block_prog == prog && block->block_pend == pend) {
-      /* we know this block already */
-      break;
-    }
-    caml_jit_assert(prog >= block->block_pend
-                    || pend < block->block_prog);
-    blockp = &block->block_next;
   }
 }
 
@@ -1534,53 +1518,21 @@ void caml_release_bytecode(code_t prog, asize_t prog_size)
   caml_jit_assert(prog_size > 0);
   caml_jit_assert((prog_size % sizeof(*prog)) == 0);
 
-  pend = prog + (prog_size / sizeof(*prog));
+  if (CAML_JIT_GNUC_LIKELY (caml_jit_enabled)) {
+    pend = prog + (prog_size / sizeof(*prog));
 
-  /* unregister the code block */
-  for (blockp = &caml_jit_block_head;;) {
-    block = *blockp;
-    caml_jit_assert(block != NULL);
-    if (block->block_prog == prog && block->block_pend == pend) {
-      /* drop the block from the list */
-      *blockp = block->block_next;
-      free(block);
-      break;
+    /* unregister the code block */
+    for (blockp = &caml_jit_block_head;;) {
+      block = *blockp;
+      caml_jit_assert(block != NULL);
+      if (block->block_prog == prog && block->block_pend == pend) {
+        /* drop the block from the list */
+        *blockp = block->block_next;
+        free(block);
+        break;
+      }
+      blockp = &block->block_next;
     }
-    blockp = &block->block_next;
   }
 }
 
-
-CAMLexport value caml_callbackN_exn(value closure, int narg, value args[])
-{
-  int    i;
-  value  res;
-  value *sp;
-
-  caml_jit_assert(narg > 0);
-  caml_jit_assert(narg + 3 <= 256);
-  caml_jit_assert(Wosize_val(closure) > 0);
-  caml_jit_assert(Tag_val(closure) == Closure_tag
-                  || Tag_val(closure) == Infix_tag);
-
-  /* reserve stack space for the arguments and return frame */
-  sp = caml_extern_sp - (narg + 3);
-
-  /* move the arguments onto the stack */
-  for (i = 0; i < narg; ++i)
-    sp[i] = args[i];
-
-  /* add a return frame below */
-  sp[i++] = (value) &caml_jit_callback_return; /* return address */
-  sp[i++] = Val_unit;                          /* environment */
-  sp[i++] = Val_long(0);                       /* extra arguments */
-
-  /* execute the closure's code */
-  res = caml_jit_rt_start(Code_val(closure), closure, Val_long(narg - 1), closure, sp);
-
-  /* adjust stack pointer in case of exception */
-  if (Is_exception_result(res))
-    caml_extern_sp += narg + 3;
-
-  return res;
-}

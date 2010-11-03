@@ -19,6 +19,8 @@
 
 #include "jit.h"
 
+#ifdef CAML_JIT
+
 /* from jit_rt_amd64.S */
 CAML_JIT_INTERNAL void  caml_jit_rt_alloc1();
 CAML_JIT_INTERNAL void  caml_jit_rt_alloc2();
@@ -48,5 +50,7 @@ CAML_JIT_INTERNAL void  caml_jit_rt_add_float();
 CAML_JIT_INTERNAL void  caml_jit_rt_sub_float();
 CAML_JIT_INTERNAL void  caml_jit_rt_mul_float();
 CAML_JIT_INTERNAL void  caml_jit_rt_div_float();
+
+#endif /* CAML_JIT */
 
 #endif /* !CAML_JIT_RT_H */

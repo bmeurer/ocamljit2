@@ -17,6 +17,8 @@
 #ifndef CAML_JIT_H
 #define CAML_JIT_H
 
+#ifdef CAML_JIT
+
 #include <stddef.h>
 #include <stdlib.h>
 
@@ -118,9 +120,13 @@ typedef uintptr_t caml_jit_uintptr_t;
 // TODO
 //
 
+CAML_JIT_INTERNAL void caml_jit_init();
+
 CAML_JIT_INTERNAL caml_jit_uint8_t *caml_jit_code_base;
 CAML_JIT_INTERNAL caml_jit_uint8_t *caml_jit_code_end;
 CAML_JIT_INTERNAL caml_jit_uint8_t *caml_jit_code_ptr;
+CAML_JIT_INTERNAL opcode_t          caml_jit_callback_return;
+CAML_JIT_INTERNAL unsigned          caml_jit_enabled;
 
 /* Caml byte code blocks */
 typedef struct caml_jit_block_t caml_jit_block_t;
@@ -131,5 +137,10 @@ struct caml_jit_block_t
   caml_jit_block_t *block_next;
 };
 
+#else
+
+#define caml_jit_enabled (0)
+
+#endif /* CAML_JIT */
 
 #endif /* !CAML_JIT_H */

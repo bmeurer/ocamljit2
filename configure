@@ -807,6 +807,18 @@ case "$arch,$model,$system" in
   *) profiling='noprof';;
 esac
 
+# Check if we can build the JIT engine
+case "$arch,$system" in
+  amd64,bsd|amd64,linux|amd64,macosx)
+    jit_enabled="true"
+    echo "JIT engine enabled."
+    ;;
+  *)
+    jit_enabled="false"
+    echo "JIT engine disabled."
+    ;;
+esac
+
 # Where is ranlib?
 
 if sh ./searchpath ranlib; then
@@ -1617,6 +1629,7 @@ echo "BYTECCCOMPOPTS=$bytecccompopts" >> Makefile
 echo "BYTECCLINKOPTS=$bytecclinkopts" >> Makefile
 echo "BYTECCLIBS=$cclibs $dllib $curseslibs $pthread_link" >> Makefile
 echo "BYTECCRPATH=$byteccrpath" >> Makefile
+echo "JIT_ENABLED=$jit_enabled" >> Makefile
 echo "EXE=$exe" >> Makefile
 echo "SUPPORTS_SHARED_LIBRARIES=$shared_libraries_supported" >> Makefile
 echo "SHAREDCCCOMPOPTS=$sharedcccompopts" >> Makefile
@@ -1684,6 +1697,7 @@ echo "        standard library.......... $libdir"
 echo "        manual pages.............. $mandir (with extension .$manext)"
 
 echo "Configuration for the bytecode compiler:"
+echo "        JIT engine................ $jit_enabled"
 echo "        C compiler used........... $bytecc"
 echo "        options for compiling..... $bytecccompopts"
 echo "        options for linking....... $bytecclinkopts $cclibs $dllib $curseslibs $pthread_link"

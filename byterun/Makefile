@@ -15,8 +15,10 @@
 
 include Makefile.common
 
-CFLAGS=-DCAML_NAME_SPACE -O3 $(BYTECCCOMPOPTS) $(IFLEXDIR)
-DFLAGS=-DCAML_NAME_SPACE -g -DDEBUG $(BYTECCCOMPOPTS) $(IFLEXDIR)
+FLAGS=-DCAML_NAME_SPACE $(BYTECCCOMPOPTS) $(IFLEXDIR) \
+      $(JIT_ENABLED_TMP:%true=-DCAML_JIT -DTARGET_$(ARCH))
+CFLAGS=$(FLAGS) -O3
+DFLAGS=$(FLAGS) -g -DDEBUG
 
 OBJS=$(COMMONOBJS) unix.o main.o
 DOBJS=$(OBJS:.o=.d.o) instrtrace.d.o
@@ -79,9 +81,9 @@ clean::
 
 depend : prims.c opnames.h jumptbl.h version.h
 	-gcc -MM -DSYS_$(SYSTEM) *.S > .depend
-	-gcc -MM $(BYTECCCOMPOPTS) *.c >> .depend
-	-gcc -MM $(BYTECCCOMPOPTS) -DDEBUG *.c | sed -e 's/\.o/.d.o/' >> .depend
-	-gcc -MM $(BYTECCCOMPOPTS) *.c | sed -e 's/\.o/.pic.o/' >> .depend
+	-gcc -MM $(FLAGS) *.c >> .depend
+	-gcc -MM $(FLAGS) -DDEBUG *.c | sed -e 's/\.o/.d.o/' >> .depend
+	-gcc -MM $(FLAGS) *.c | sed -e 's/\.o/.pic.o/' >> .depend
 .PHONY: depend
 
 include .depend

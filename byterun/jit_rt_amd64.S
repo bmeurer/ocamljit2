@@ -326,7 +326,6 @@ FUNCTION(G(caml_jit_rt_makeblockN))
         orl     $(3 << 8), %esi
         orq     %rdi, %rsi
     /* Initialize the block */
-        cld
         leaq    2*8(%r15), %rdi
         movq    %rsi, 0*8(%r15)
         movq    %r14, %rsi
@@ -461,7 +460,6 @@ FUNCTION(G(caml_jit_rt_grab_closure_and_return))
         leaq    8(, %r13, 8), %r10
         call    .Lcaml_jit_rt_allocN
     /* Setup for initialization below */
-        cld
         leaq    -2(%r13), %rcx
         leaq    3*8(%r15), %rdi
         movq    %r14, %rsi
@@ -531,7 +529,6 @@ FUNCTION(G(caml_jit_rt_restart))
         leaq    (, %rcx, 8), %r11
         subq    %r11, %r14
     /* Push the arguments back onto the Caml stack */
-        cld
         leaq    2*8(%r12), %rsi
         movq    %r14, %rdi
         rep movsq

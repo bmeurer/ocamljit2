@@ -39,6 +39,10 @@
 #include "stacks.h"
 
 
+/* from array.c */
+extern value caml_array_unsafe_get_float(value, value);
+extern value caml_array_unsafe_set_float(value, value, value);
+
 /* from floats.c */
 extern value caml_sqrt_float(value);
 extern value caml_add_float(value, value);
@@ -779,16 +783,14 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
       break;
 
     case GETFLOATFIELD:
+      jx86_movlpd_xmm_membase(cp, JX86_XMM0, JX86_RAX, *pc++ * 8);
+    copy_double:
       if (sp != 0) {
         jx86_leaq_reg_membase(cp, JX86_R14, JX86_R14, sp);
         sp = 0;
       }
-      jx86_movlpd_xmm_membase(cp, JX86_XMM0, JX86_RAX, *pc++ * 8);
-      jx86_call(cp, &caml_jit_rt_alloc1);
-      jx86_leaq_reg_membase(cp, JX86_RAX, JX86_R15, 1 * 8);
-      jx86_movq_membase_imm(cp, JX86_R15, 0 * 8, Make_header(Double_wosize, Double_tag, Caml_black));
-      jx86_movlpd_membase_xmm(cp, JX86_R15, 1 * 8, JX86_XMM0);
-      break;
+      addr = &caml_jit_rt_copy_double;
+      goto flush_call_addr;
 
     case SETFIELD:
       instr = SETFIELD0 + *pc++;
@@ -1151,10 +1153,28 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
         op = JX86_SETA;
         goto cmpfloat;
       }
+      else if (addr == &caml_array_unsafe_get_float) {
+        jx86_movq_reg_membase(cp, JX86_RSI, JX86_R14, sp); sp += 8;
+        jx86_leaq_reg_memindex(cp, JX86_RSI, JX86_RAX, -4, JX86_RSI, 2);
+        jx86_movlpd_xmm_membase(cp, JX86_XMM0, JX86_RSI, 0);
+        goto copy_double;
+      }
       else {
         goto c_call;
       }
     case C_CALL3:
+      addr = Primitive(*pc++);
+      if (addr == &caml_array_unsafe_set_float) {
+        jx86_movq_reg_membase(cp, JX86_RDI, JX86_R14, sp); sp += 8;
+        jx86_movq_reg_membase(cp, JX86_RSI, JX86_R14, sp); sp += 8;
+        jx86_leaq_reg_memindex(cp, JX86_RDI, JX86_RAX, -4, JX86_RDI, 2);
+        jx86_movlpd_xmm_membase(cp, JX86_XMM0, JX86_RSI, 0);
+        jx86_movlpd_membase_xmm(cp, JX86_RDI, 0, JX86_XMM0);
+        goto unit;
+      }
+      else {
+        goto c_call;
+      }
     case C_CALL4:
     case C_CALL5:
       addr = Primitive(*pc++);

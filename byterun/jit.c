@@ -19,6 +19,7 @@
 #include <sys/types.h>
 #include <sys/mman.h>
 #include <errno.h>
+#include <math.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
@@ -44,11 +45,15 @@ extern value caml_array_unsafe_get_float(value, value);
 extern value caml_array_unsafe_set_float(value, value, value);
 
 /* from floats.c */
+extern value caml_asin_float(value);
+extern value caml_cos_float(value);
+extern value caml_sin_float(value);
 extern value caml_sqrt_float(value);
 extern value caml_add_float(value, value);
 extern value caml_sub_float(value, value);
 extern value caml_mul_float(value, value);
 extern value caml_div_float(value, value);
+extern value caml_atan2_float(value, value);
 extern value caml_eq_float(value, value);
 extern value caml_neq_float(value, value);
 extern value caml_le_float(value, value);
@@ -279,6 +284,7 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
 #ifdef DEBUG
   caml_jit_block_t *block;
 #endif
+  unsigned state = 0;
 
   caml_jit_assert(pc != NULL);
   caml_jit_assert(caml_jit_enabled);
@@ -321,13 +327,21 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
         sp = 0;
       }
 
+      /* flush the pending float box */
+      if (state != 0) {
+        jx86_call(cp, &caml_jit_rt_copy_double);
+        state = 0;
+      }
+
     jmp_stop_generation:
       /* generate a jmp to the known native code */
       caml_jit_assert(sp == 0);
+      caml_jit_assert(state == 0);
       jx86_jmp(cp, addr);
 
     stop_generation:
       caml_jit_assert(sp == 0);
+      caml_jit_assert(state == 0);
       if (caml_jit_pending_size > 0) {
         pc = caml_jit_pending_buffer[--caml_jit_pending_size];
         /* check if this pending item is already compiled */
@@ -346,6 +360,12 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
       if (sp != 0) {
         jx86_leaq_reg_membase(cp, JX86_R14, JX86_R14, sp);
         sp = 0;
+      }
+
+      /* flush the pending float box */
+      if (state != 0) {
+        jx86_call(cp, &caml_jit_rt_copy_double);
+        state = 0;
       }
 
       caml_jit_assert(jcp > caml_jit_code_base);
@@ -370,7 +390,7 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
     caml_jit_assert(cp > caml_jit_code_base);
 
     /* setup the native code offset for this instruction */
-    if (CAML_JIT_GNUC_LIKELY (sp == 0))
+    if (CAML_JIT_GNUC_LIKELY (sp == 0 && state == 0))
       *((caml_jit_int32_t *) pc) = (caml_jit_int32_t) (cp - caml_jit_code_end);
 
 #ifdef DEBUG
@@ -402,11 +422,23 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
 
     ++pc;
 
+  again:
     switch (instr) {
+
+    state1_to_state0:
+      if (sp != 0) {
+        jx86_leaq_reg_membase(cp, JX86_R14, JX86_R14, sp);
+        sp = 0;
+      }
+      jx86_call(cp, &caml_jit_rt_copy_double);
+      state = 0;
+      goto again;
 
 /* Basic stack operations */
 
     case PUSHACC:
+      if (state != 0)
+        goto state1_to_state0;
       instr = ACC0 + *pc++;
       goto pushaccX;
     case PUSHACC1:
@@ -416,6 +448,8 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
     case PUSHACC5:
     case PUSHACC6:
     case PUSHACC7:
+      if (state != 0)
+        goto state1_to_state0;
       instr = (instr - PUSHACC0) + ACC0;
     pushaccX:
       sp -= 8;
@@ -431,6 +465,7 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
     case ACC7:
     accX:
       jx86_movq_reg_membase(cp, JX86_RAX, JX86_R14, sp + (instr - ACC0) * 8);
+      state = 0;
       break;
 
     case ACC:
@@ -439,14 +474,19 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
 
     case PUSH:
     case PUSHACC0:
+      if (state != 0)
+        goto state1_to_state0;
       sp -= 8;
       jx86_movq_membase_reg(cp, JX86_R14, sp, JX86_RAX);
       break;
 
     case ASSIGN:
+      if (state != 0)
+        goto state1_to_state0;
       jx86_movq_membase_reg(cp, JX86_R14, sp + *pc++ * 8, JX86_RAX);
     unit:
       jx86_movl_reg_imm(cp, JX86_EAX, Val_unit);
+      state = 0;
       break;
 
     case POP:
@@ -456,12 +496,16 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
 /* Access in heap-allocated environment */
 
     case PUSHENVACC:
+      if (state != 0)
+        goto state1_to_state0;
       instr = (ENVACC1 - 1) + *pc++;
       goto pushenvaccX;
     case PUSHENVACC1:
     case PUSHENVACC2:
     case PUSHENVACC3:
     case PUSHENVACC4:
+      if (state != 0)
+        goto state1_to_state0;
       instr = (instr - PUSHENVACC1) + ENVACC1;
     pushenvaccX:
       sp -= 8;
@@ -473,6 +517,7 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
     case ENVACC4:
     envaccX:
       jx86_movq_reg_membase(cp, JX86_RAX, JX86_R12, (instr - (ENVACC1 - 1)) * 8);
+      state = 0;
       break;
 
     case ENVACC:
@@ -499,6 +544,7 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
         jx86_leaq_reg_membase(cp, JX86_R14, JX86_R14, sp);
         sp = 0;
       }
+      caml_jit_assert(state == 0);
       jx86_jmp(cp, addr);
       break;
 
@@ -558,6 +604,7 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
       int required = *pc++;
 
       caml_jit_assert(sp == 0);
+      caml_jit_assert(state == 0);
 
       /* check if we have too few extra args */
       jx86_cmpq_reg_imm(cp, JX86_R13, Val_int(required));
@@ -580,6 +627,11 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
         addr = &caml_jit_rt_makeblock1;
       }
       else {
+        if (state != 0) {
+          pc--;
+          goto state1_to_state0;
+        }
+
         /* push accu onto the Caml stack */
         sp -= 8;
         jx86_movq_membase_reg(cp, JX86_R14, sp, JX86_RAX);
@@ -597,6 +649,7 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
       }
       jx86_movl_reg_imm(cp, JX86_ESI, Closure_tag);
       jx86_movq_reg_imm(cp, JX86_RAX, pc + *pc);
+      state = 0;
       pc++;
       goto flush_call_addr;
     }
@@ -610,6 +663,8 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
         jx86_leaq_reg_membase(cp, JX86_R14, JX86_R14, sp);
         sp = 0;
       }
+      if (state != 0)
+        wosize += 2;
       switch (wosize) {
       case 1:
         addr = &caml_jit_rt_alloc1;
@@ -629,6 +684,13 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
         break;
       }
       jx86_call(cp, addr);
+      if (state != 0) {
+        wosize -= 2;
+        jx86_movq_membase_imm(cp, JX86_R15, (wosize + 1) * 8, Make_header(Double_wosize, Double_tag, Caml_black));
+        jx86_leaq_reg_membase(cp, JX86_RAX, JX86_R15, (wosize + 1) * 8);
+        jx86_movlpd_membase_xmm(cp, JX86_R15, (wosize + 2) * 8, JX86_XMM0);
+        state = 0;
+      }
       jx86_movq_membase_imm(cp, JX86_R15, 0 * 8, Make_header(wosize, Closure_tag, Caml_black));
       jx86_movq_reg_imm(cp, JX86_RDX, (caml_jit_intptr_t) (pc + pc[0]));
       if (--num_vars >= 0) {
@@ -655,46 +717,61 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
     }
 
     case PUSHOFFSETCLOSURE:
+      if (state != 0)
+        goto state1_to_state0;
       sp -= 8;
       jx86_movq_membase_reg(cp, JX86_R14, sp, JX86_RAX);
       /* FALL-THROUGH */
     case OFFSETCLOSURE:
       jx86_leaq_reg_membase(cp, JX86_RAX, JX86_R12, *pc++ * 8);
+      state = 0;
       break;
 
     case PUSHOFFSETCLOSUREM2:
+      if (state != 0)
+        goto state1_to_state0;
       sp -= 8;
       jx86_movq_membase_reg(cp, JX86_R14, sp, JX86_RAX);
       /* FALL-THROUGH */
     case OFFSETCLOSUREM2:
       jx86_leaq_reg_membase(cp, JX86_RAX, JX86_R12, -2 * 8);
+      state = 0;
       break;
 
     case PUSHOFFSETCLOSURE0:
+      if (state != 0)
+        goto state1_to_state0;
       sp -= 8;
       jx86_movq_membase_reg(cp, JX86_R14, sp, JX86_RAX);
       /* FALL-THROUGH */
     case OFFSETCLOSURE0:
       jx86_movq_reg_reg(cp, JX86_RAX, JX86_R12);
+      state = 0;
       break;
 
     case PUSHOFFSETCLOSURE2:
+      if (state != 0)
+        goto state1_to_state0;
       sp -= 8;
       jx86_movq_membase_reg(cp, JX86_R14, sp, JX86_RAX);
       /* FALL-THROUGH */
     case OFFSETCLOSURE2:
       jx86_leaq_reg_membase(cp, JX86_RAX, JX86_R12, 2 * 8);
+      state = 0;
       break;
 
 /* Access to global variables */
 
     case PUSHGETGLOBAL:
     case PUSHGETGLOBALFIELD:
+      if (state != 0)
+        goto state1_to_state0;
       sp -= 8;
       jx86_movq_membase_reg(cp, JX86_R14, sp, JX86_RAX);
       /* FALL-THROUGH */
     case GETGLOBAL:
     case GETGLOBALFIELD:
+      caml_jit_assert(state == 0);
       jx86_movq_reg_imm(cp, JX86_RSI, &caml_global_data);
       jx86_movq_reg_membase(cp, JX86_RSI, JX86_RSI, 0);
       jx86_movq_reg_membase(cp, JX86_RAX, JX86_RSI, *pc++ * 8);
@@ -703,6 +780,8 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
       break;
 
     case SETGLOBAL:
+      if (state != 0)
+        goto state1_to_state0;
       jx86_movq_reg_imm(cp, JX86_RDI, &caml_global_data);
       jx86_movq_reg_reg(cp, JX86_RSI, JX86_RAX);
       jx86_movq_reg_membase(cp, JX86_RDI, JX86_RDI, 0);
@@ -712,9 +791,13 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
 /* Allocation of blocks */
 
     case PUSHATOM:
+      if (state != 0)
+        goto state1_to_state0;
       instr = ATOM0 + *pc++;
       goto pushatomX;
     case PUSHATOM0:
+      if (state != 0)
+        goto state1_to_state0;
       instr = ATOM0;
     pushatomX:
       sp -= 8;
@@ -723,6 +806,7 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
     case ATOM0:
     atomX:
       jx86_movq_reg_imm(cp, JX86_RAX, Atom(instr - ATOM0));
+      state = 0;
       break;
 
     case ATOM:
@@ -759,6 +843,10 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
         jx86_leaq_reg_membase(cp, JX86_R14, JX86_R14, sp);
         sp = 0;
       }
+      if (CAML_JIT_GNUC_UNLIKELY (state != 0)) {
+        jx86_call(cp, &caml_jit_rt_copy_double);
+        state = 0;
+      }
     call_addr:
       jx86_call(cp, addr);
       break;
@@ -779,18 +867,15 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
     case GETFIELD1:
     case GETFIELD2:
     case GETFIELD3:
+      caml_jit_assert(state == 0);
       jx86_movq_reg_membase(cp, JX86_RAX, JX86_RAX, (instr - GETFIELD0) * 8);
       break;
 
     case GETFLOATFIELD:
+      caml_jit_assert(state == 0);
       jx86_movlpd_xmm_membase(cp, JX86_XMM0, JX86_RAX, *pc++ * 8);
-    copy_double:
-      if (sp != 0) {
-        jx86_leaq_reg_membase(cp, JX86_R14, JX86_R14, sp);
-        sp = 0;
-      }
-      addr = &caml_jit_rt_copy_double;
-      goto flush_call_addr;
+      state = 1;
+      break;
 
     case SETFIELD:
       instr = SETFIELD0 + *pc++;
@@ -799,6 +884,7 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
     case SETFIELD1:
     case SETFIELD2:
     case SETFIELD3:
+      caml_jit_assert(state == 0);
       jx86_movq_reg_membase(cp, JX86_RSI, JX86_R14, sp);
       sp += 8;
       jx86_leaq_reg_membase(cp, JX86_RDI, JX86_RAX, (instr - SETFIELD0) * 8);
@@ -807,6 +893,7 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
       goto unit;
 
     case SETFLOATFIELD:
+      caml_jit_assert(state == 0);
       jx86_movq_reg_membase(cp, JX86_RSI, JX86_R14, sp);
       sp += 8;
       jx86_movq_reg_membase(cp, JX86_RSI, JX86_RSI, 0);
@@ -816,18 +903,21 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
 /* Array operations */
 
     case VECTLENGTH:
+      caml_jit_assert(state == 0);
       jx86_movq_reg_membase(cp, JX86_RAX, JX86_RAX, -1 * 8);
       jx86_shrq_reg_imm(cp, JX86_RAX, 9);
       jx86_orq_reg_imm(cp, JX86_RAX, 1);
       break;
 
     case GETVECTITEM:
+      caml_jit_assert(state == 0);
       jx86_movq_reg_membase(cp, JX86_RSI, JX86_R14, sp);
       jx86_shrq_reg_imm(cp, JX86_RSI, 1);
       jx86_movq_reg_memindex(cp, JX86_RAX, JX86_RAX, 0, JX86_RSI, 3);
       goto pop1;
 
     case SETVECTITEM:
+      caml_jit_assert(state == 0);
       jx86_movq_reg_membase(cp, JX86_RDI, JX86_R14, sp + 0 * 8);
       jx86_movq_reg_membase(cp, JX86_RSI, JX86_R14, sp + 1 * 8);
       sp += 2 * 8;
@@ -838,6 +928,7 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
 /* String operations */
 
     case GETSTRINGCHAR:
+      caml_jit_assert(state == 0);
       jx86_movq_reg_membase(cp, JX86_RSI, JX86_R14, sp);
       jx86_shrq_reg_imm(cp, JX86_RSI, 1);
       jx86_movb_reg_memindex(cp, JX86_AL, JX86_RAX, 0, JX86_RSI, 0);
@@ -847,6 +938,7 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
       goto or1_pop1;
 
     case SETSTRINGCHAR:
+      caml_jit_assert(state == 0);
       jx86_movq_reg_membase(cp, JX86_RDI, JX86_R14, sp + 0 * 8);
       jx86_movq_reg_membase(cp, JX86_RCX, JX86_R14, sp + 1 * 8);
       sp += 2 * 8;
@@ -864,6 +956,12 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
       if (sp != 0) {
         jx86_leaq_reg_membase(cp, JX86_R14, JX86_R14, sp);
         sp = 0;
+      }
+
+      /* flush the float box */
+      if (state != 0) {
+        jx86_call(cp, &caml_jit_rt_copy_double);
+        state = 0;
       }
 
       /* check if target already compiled */
@@ -891,6 +989,12 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
         if (sp != 0) {
           jx86_leaq_reg_membase(cp, JX86_R14, JX86_R14, sp);
           sp = 0;
+        }
+
+        /* flush the float box */
+        if (state != 0) {
+          jx86_call(cp, &caml_jit_rt_copy_double);
+          state = 0;
         }
 
         if (*dpc < 0) {
@@ -953,6 +1057,12 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
         sp = 0;
       }
 
+      /* flush the float box */
+      if (state != 0) {
+        jx86_call(cp, &caml_jit_rt_copy_double);
+        state = 0;
+      }
+
       leaq = cp;
       jx86_leaq_reg_forward(cp, JX86_RDX);
       if (num_consts) {
@@ -1000,6 +1110,7 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
     }
 
     case BOOLNOT:
+      caml_jit_assert(state == 0);
       jx86_xorb_reg_imm(cp, JX86_AL, 2);
       break;
 
@@ -1033,8 +1144,13 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
       if (sp != 0) {
         jx86_leaq_reg_membase(cp, JX86_R14, JX86_R14, sp);
         sp = 0;
-        *((caml_jit_int32_t *) pc - 1) = (caml_jit_int32_t) (cp - caml_jit_code_end);
       }
+      if (state != 0) {
+        jx86_call(cp, &caml_jit_rt_copy_double);
+        state = 0;
+      }
+      *((caml_jit_int32_t *) pc - 1) = (caml_jit_int32_t) (cp - caml_jit_code_end);
+      caml_jit_assert(state == 0);
       caml_jit_assert(pc[-1] < 0);
 
       jx86_movq_reg_imm(cp, JX86_RDX, &caml_something_to_do);
@@ -1075,10 +1191,39 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
       goto c_call;
     case C_CALL1:
       addr = Primitive(*pc++);
-      if (addr == &caml_sqrt_float) {
-        jx86_sqrtsd_xmm_membase(cp, JX86_XMM0, JX86_RAX, 0);
-        addr = &caml_jit_rt_copy_double;
-        goto c_call_float1;
+      if (addr == &caml_asin_float) {
+        if (state == 0) {
+          jx86_movlpd_xmm_membase(cp, JX86_XMM0, JX86_RAX, 0);
+          state = 1;
+        }
+        jx86_call(cp, &asin);
+        break;
+      }
+      else if (addr == &caml_cos_float) {
+        if (state == 0) {
+          jx86_movlpd_xmm_membase(cp, JX86_XMM0, JX86_RAX, 0);
+          state = 1;
+        }
+        jx86_call(cp, &cos);
+        break;
+      }
+      else if (addr == &caml_sin_float) {
+        if (state == 0) {
+          jx86_movlpd_xmm_membase(cp, JX86_XMM0, JX86_RAX, 0);
+          state = 1;
+        }
+        jx86_call(cp, &sin);
+        break;
+      }
+      else if (addr == &caml_sqrt_float) {
+        if (state == 0) {
+          jx86_sqrtsd_xmm_membase(cp, JX86_XMM0, JX86_RAX, 0);
+          state = 1;
+        }
+        else {
+          jx86_sqrtsd_xmm_xmm(cp, JX86_XMM0, JX86_XMM0);
+        }
+        break;
       }
       else {
         goto c_call;
@@ -1086,32 +1231,56 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
     case C_CALL2:
       addr = Primitive(*pc++);
       if (addr == &caml_add_float) {
-        addr = &caml_jit_rt_add_float;
-      c_call_float2:
-        sp += 8;
-      c_call_float1:
-        if (sp != 0) {
-          jx86_leaq_reg_membase(cp, JX86_R14, JX86_R14, sp);
-          sp = 0;
+        jx86_movq_reg_membase(cp, JX86_RSI, JX86_R14, sp); sp += 8;
+        if (state == 0) {
+          jx86_movlpd_xmm_membase(cp, JX86_XMM0, JX86_RAX, 0);
+          state = 1;
         }
-        jx86_call(cp, addr);
+        jx86_addsd_xmm_membase(cp, JX86_XMM0, JX86_RSI, 0);
         break;
       }
       else if (addr == &caml_sub_float) {
-        addr = &caml_jit_rt_sub_float;
-        goto c_call_float2;
+        jx86_movq_reg_membase(cp, JX86_RSI, JX86_R14, sp); sp += 8;
+        if (state == 0) {
+          jx86_movlpd_xmm_membase(cp, JX86_XMM0, JX86_RAX, 0);
+          state = 1;
+        }
+        jx86_subsd_xmm_membase(cp, JX86_XMM0, JX86_RSI, 0);
+        break;
       }
       else if (addr == &caml_mul_float) {
-        addr = &caml_jit_rt_mul_float;
-        goto c_call_float2;
+        jx86_movq_reg_membase(cp, JX86_RSI, JX86_R14, sp); sp += 8;
+        if (state == 0) {
+          jx86_movlpd_xmm_membase(cp, JX86_XMM0, JX86_RAX, 0);
+          state = 1;
+        }
+        jx86_mulsd_xmm_membase(cp, JX86_XMM0, JX86_RSI, 0);
+        break;
       }
       else if (addr == &caml_div_float) {
-        addr = &caml_jit_rt_div_float;
-        goto c_call_float2;
+        jx86_movq_reg_membase(cp, JX86_RSI, JX86_R14, sp); sp += 8;
+        if (state == 0) {
+          jx86_movlpd_xmm_membase(cp, JX86_XMM0, JX86_RAX, 0);
+          state = 1;
+        }
+        jx86_divsd_xmm_membase(cp, JX86_XMM0, JX86_RSI, 0);
+        break;
+      }
+      else if (addr == &caml_atan2_float) {
+        jx86_movq_reg_membase(cp, JX86_RSI, JX86_R14, sp); sp += 8;
+        if (state == 0) {
+          jx86_movlpd_xmm_membase(cp, JX86_XMM0, JX86_RAX, 0);
+          state = 1;
+        }
+        jx86_movlpd_xmm_membase(cp, JX86_XMM1, JX86_RSI, 0);
+        jx86_call(cp, &atan2);
+        break;
       }
       else if (addr == &caml_eq_float) {
         jx86_movq_reg_membase(cp, JX86_RSI, JX86_R14, sp);
-        jx86_movlpd_xmm_membase(cp, JX86_XMM0, JX86_RAX, 0);
+        if (state == 0)
+          jx86_movlpd_xmm_membase(cp, JX86_XMM0, JX86_RAX, 0);
+        state = 0;
         jx86_ucomisd_xmm_membase(cp, JX86_XMM0, JX86_RSI, 0);
         jx86_sete_reg(cp, JX86_AL);
         jx86_setnp_reg(cp, JX86_DL);
@@ -1121,7 +1290,9 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
       }
       else if (addr == &caml_neq_float) {
         jx86_movq_reg_membase(cp, JX86_RSI, JX86_R14, sp);
-        jx86_movlpd_xmm_membase(cp, JX86_XMM0, JX86_RAX, 0);
+        if (state == 0)
+          jx86_movlpd_xmm_membase(cp, JX86_XMM0, JX86_RAX, 0);
+        state = 0;
         jx86_ucomisd_xmm_membase(cp, JX86_XMM0, JX86_RSI, 0);
         jx86_setne_reg(cp, JX86_AL);
         jx86_setp_reg(cp, JX86_DL);
@@ -1133,8 +1304,11 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
         op = JX86_SETAE;
       cmpfloat_rev:
         jx86_movq_reg_membase(cp, JX86_RSI, JX86_R14, sp);
-        jx86_movlpd_xmm_membase(cp, JX86_XMM0, JX86_RSI, 0);
-        jx86_ucomisd_xmm_membase(cp, JX86_XMM0, JX86_RAX, 0);
+        jx86_movlpd_xmm_membase(cp, JX86_XMM1, JX86_RSI, 0);
+        if (state == 0)
+          jx86_ucomisd_xmm_membase(cp, JX86_XMM1, JX86_RAX, 0);
+        else
+          jx86_ucomisd_xmm_xmm(cp, JX86_XMM1, JX86_XMM0);
         goto cmpint1;
       }
       else if (addr == &caml_lt_float) {
@@ -1145,7 +1319,8 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
         op = JX86_SETAE;
       cmpfloat:
         jx86_movq_reg_membase(cp, JX86_RSI, JX86_R14, sp);
-        jx86_movlpd_xmm_membase(cp, JX86_XMM0, JX86_RAX, 0);
+        if (state == 0)
+          jx86_movlpd_xmm_membase(cp, JX86_XMM0, JX86_RAX, 0);
         jx86_ucomisd_xmm_membase(cp, JX86_XMM0, JX86_RSI, 0);
         goto cmpint1;
       }
@@ -1154,10 +1329,12 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
         goto cmpfloat;
       }
       else if (addr == &caml_array_unsafe_get_float) {
+        caml_jit_assert(state == 0);
         jx86_movq_reg_membase(cp, JX86_RSI, JX86_R14, sp); sp += 8;
         jx86_leaq_reg_memindex(cp, JX86_RSI, JX86_RAX, -4, JX86_RSI, 2);
         jx86_movlpd_xmm_membase(cp, JX86_XMM0, JX86_RSI, 0);
-        goto copy_double;
+        state = 1;
+        break;
       }
       else {
         goto c_call;
@@ -1165,6 +1342,7 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
     case C_CALL3:
       addr = Primitive(*pc++);
       if (addr == &caml_array_unsafe_set_float) {
+        caml_jit_assert(state == 0);
         jx86_movq_reg_membase(cp, JX86_RDI, JX86_R14, sp); sp += 8;
         jx86_movq_reg_membase(cp, JX86_RSI, JX86_R14, sp); sp += 8;
         jx86_leaq_reg_memindex(cp, JX86_RDI, JX86_RAX, -4, JX86_RDI, 2);
@@ -1180,6 +1358,15 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
       addr = Primitive(*pc++);
     c_call: {
       int num_args = instr - (C_CALL1 - 1);
+
+      if (state != 0) {
+        if (sp != 0) {
+          jx86_leaq_reg_membase(cp, JX86_R14, JX86_R14, sp);
+          sp = 0;
+        }
+        jx86_call(cp, &caml_jit_rt_copy_double);
+        state = 0;
+      }
 
       /* load %rbp with the address of caml_young_ptr */
       jx86_movq_reg_imm(cp, JX86_RBP, &caml_young_ptr);
@@ -1248,17 +1435,22 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
 /* Integer constants */
 
     case PUSHCONSTINT:
+      if (state != 0)
+        goto state1_to_state0;
       sp -= 8;
       jx86_movq_membase_reg(cp, JX86_R14, sp, JX86_RAX);
       /* FALL-THROUGH */
     case CONSTINT:
       jx86_movq_reg_imm(cp, JX86_RAX, Val_int(*pc++));
+      state = 0;
       break;
 
     case PUSHCONST0:
     case PUSHCONST1:
     case PUSHCONST2:
     case PUSHCONST3:
+      if (state != 0)
+        goto state1_to_state0;
       instr = (instr - PUSHCONST0) + CONST0;
       sp -= 8;
       jx86_movq_membase_reg(cp, JX86_R14, sp, JX86_RAX);
@@ -1268,16 +1460,19 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
     case CONST2:
     case CONST3:
       jx86_movq_reg_imm(cp, JX86_RAX, Val_int(instr - CONST0));
+      state = 0;
       break;
 
 /* Integer arithmetic */
 
     case NEGINT:
+      caml_jit_assert(state == 0);
       jx86_negq_reg(cp, JX86_RAX);
       jx86_addq_reg_imm(cp, JX86_RAX, 2);
       break;
 
     case ADDINT:
+      caml_jit_assert(state == 0);
       jx86_addq_reg_membase(cp, JX86_RAX, JX86_R14, sp);
       jx86_subq_reg_imm(cp, JX86_RAX, 1);
     pop1:
@@ -1285,12 +1480,14 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
       break;
 
     case SUBINT:
+      caml_jit_assert(state == 0);
       jx86_subq_reg_membase(cp, JX86_RAX, JX86_R14, sp);
     or1_pop1:
       jx86_orb_reg_imm(cp, JX86_AL, 1);
       goto pop1;
 
     case MULINT:
+      caml_jit_assert(state == 0);
       jx86_movq_reg_membase(cp, JX86_RCX, JX86_R14, sp);
       jx86_sarq_reg_imm(cp, JX86_RAX, 1);
       jx86_sarq_reg_imm(cp, JX86_RCX, 1);
@@ -1299,6 +1496,7 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
 
     case DIVINT:
     case MODINT:
+      caml_jit_assert(state == 0);
       /* load %r11 with the effective pc (for the exception case) */
       jx86_movq_reg_imm(cp, JX86_R11, pc + 2);
       /* load the operands */
@@ -1323,20 +1521,24 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
       break;
 
     case ANDINT:
+      caml_jit_assert(state == 0);
       jx86_andq_reg_membase(cp, JX86_RAX, JX86_R14, sp);
       goto pop1;
 
     case ORINT:
+      caml_jit_assert(state == 0);
       jx86_orq_reg_membase(cp, JX86_RAX, JX86_R14, sp);
       goto pop1;
 
     case XORINT:
+      caml_jit_assert(state == 0);
       jx86_xorq_reg_membase(cp, JX86_RAX, JX86_R14, sp);
       goto or1_pop1;
 
     case LSLINT:
       op = JX86_SHL;
     shiftint:
+      caml_jit_assert(state == 0);
       jx86_movq_reg_membase(cp, JX86_RCX, JX86_R14, sp);
       jx86_subq_reg_imm(cp, JX86_RAX, 1);
       jx86_shrb_reg_imm(cp, JX86_CL, 1);
@@ -1350,12 +1552,17 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
       goto shiftint;
 
     case EQ:
+      if (state != 0)
+        goto state1_to_state0;
       op = JX86_SETE;
     cmpint:
+      caml_jit_assert(state == 0);
       jx86_cmpq_reg_membase(cp, JX86_RAX, JX86_R14, sp);
     cmpint1:
       jx86_setcc_reg(cp, op, JX86_AL);
+      state = 0;
     cmpint2:
+      caml_jit_assert(state == 0);
       jx86_movzxlb_reg_reg(cp, JX86_EAX, JX86_AL);
       if (*pc == BRANCHIF || *pc == BRANCHIFNOT) {
         /* leal 1(, %eax, 2), %eax */
@@ -1372,6 +1579,8 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
       else
         goto shl1_or1_pop1;
     case NEQ:
+      if (state != 0)
+        goto state1_to_state0;
       op = JX86_SETNE;
       goto cmpint;
     case LTINT:
@@ -1394,11 +1603,15 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
       goto cmpint;
 
     case BEQ:
+      if (state != 0)
+        goto state1_to_state0;
       op = JX86_JE;
     branchint:
       jx86_cmpq_reg_imm(cp, JX86_RAX, Val_int(*pc++));
       goto branchif1;
     case BNEQ:
+      if (state != 0)
+        goto state1_to_state0;
       op = JX86_JNE;
       goto branchint;
     case BLTINT:
@@ -1421,28 +1634,38 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
       goto branchint;
 
     case OFFSETINT:
+      caml_jit_assert(state == 0);
       jx86_addq_reg_imm(cp, JX86_RAX, *pc++ << 1);
       break;
 
     case OFFSETREF:
+      caml_jit_assert(state == 0);
       jx86_addq_membase_imm(cp, JX86_RAX, 0, *pc++ << 1);
       goto unit;
 
     case ISINT:
-      jx86_andl_reg_imm(cp, JX86_EAX, 1);
-      jx86_shll_reg_imm(cp, JX86_EAX, 1);
-      jx86_orb_reg_imm(cp, JX86_AL, 1);
+      if (state == 0) {
+        jx86_andl_reg_imm(cp, JX86_EAX, 1);
+        jx86_shll_reg_imm(cp, JX86_EAX, 1);
+        jx86_orb_reg_imm(cp, JX86_AL, 1);
+      }
+      else {
+        jx86_movl_reg_imm(cp, JX86_EAX, Val_false);
+        state = 0;
+      }
       break;
 
 /* Object-oriented operations */
 
     case GETMETHOD:
+      caml_jit_assert(state == 0);
       jx86_movq_reg_membase(cp, JX86_RSI, JX86_R14, sp);
       jx86_movq_reg_membase(cp, JX86_RSI, JX86_RSI, 0);
       jx86_movq_reg_memindex(cp, JX86_RAX, JX86_RSI, -4, JX86_RAX, 2);
       break;
 
     case GETPUBMET:
+      caml_jit_assert(state == 0);
       jx86_movq_reg_membase(cp, JX86_RDI, JX86_RAX, 0);
       sp -= 8;
       jx86_movq_membase_reg(cp, JX86_R14, sp, JX86_RAX);
@@ -1453,6 +1676,7 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
       goto call_addr;
 
     case GETDYNMET:
+      caml_jit_assert(state == 0);
       jx86_movq_reg_reg(cp, JX86_RSI, JX86_RAX);
       jx86_movq_reg_membase(cp, JX86_RDI, JX86_R14, sp);
       addr = &caml_get_public_method;
@@ -1485,6 +1709,7 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
   caml_jit_assert(caml_jit_pending_buffer == NULL || caml_jit_pending_capacity > 0);
   caml_jit_assert(caml_jit_pending_capacity >= 0);
   caml_jit_assert(caml_jit_pending_size == 0);
+  caml_jit_assert(state == 0);
   caml_jit_assert(sp == 0);
 
   return (caml_jit_uint8_t *) addr;

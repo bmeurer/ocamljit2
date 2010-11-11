@@ -99,13 +99,13 @@ CAML_JIT_INTERNAL unsigned char *caml_jit_code_ptr;
 CAML_JIT_INTERNAL opcode_t       caml_jit_callback_return;
 CAML_JIT_INTERNAL unsigned       caml_jit_enabled;
 
-/* Caml byte code blocks */
-typedef struct caml_jit_block_t caml_jit_block_t;
-struct caml_jit_block_t
+/* Caml byte-code segments */
+typedef struct caml_jit_segment_t caml_jit_segment_t;
+struct caml_jit_segment_t
 {
-  code_t            block_prog;
-  code_t            block_pend;
-  caml_jit_block_t *block_next;
+  code_t              segment_prog;
+  code_t              segment_pend;
+  caml_jit_segment_t *segment_next;
 };
 
 #else

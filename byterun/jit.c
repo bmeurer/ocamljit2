@@ -64,7 +64,7 @@ extern value caml_cache_public_method2(value *, value, opcode_t *);
 static void *caml_jit_compile(code_t pc);
 
 
-static caml_jit_block_t *caml_jit_block_head = NULL;
+static caml_jit_segment_t *caml_jit_segment_head = NULL;
 unsigned char *caml_jit_code_base = NULL;
 unsigned char *caml_jit_code_end = NULL;
 unsigned char *caml_jit_code_ptr = NULL;
@@ -278,7 +278,7 @@ static void *caml_jit_compile(code_t pc)
   unsigned op;
   int sp = 0;
 #ifdef DEBUG
-  caml_jit_block_t *block;
+  caml_jit_segment_t *segment;
 #endif
 
   caml_jit_assert(pc != NULL);
@@ -293,9 +293,9 @@ static void *caml_jit_compile(code_t pc)
   caml_jit_assert(caml_jit_pending_capacity == 0 || caml_jit_pending_buffer != NULL);
 
 #ifdef DEBUG
-  for (block = caml_jit_block_head;; block = block->block_next) {
-    caml_jit_assert(block != NULL);
-    if (block->block_prog <= pc && pc < block->block_pend)
+  for (segment = caml_jit_segment_head;; segment = segment->segment_next) {
+    caml_jit_assert(segment != NULL);
+    if (segment->segment_prog <= pc && pc < segment->segment_pend)
       break;
   }
 #endif
@@ -304,8 +304,8 @@ static void *caml_jit_compile(code_t pc)
     caml_jit_assert((sp % 8) == 0);
     caml_jit_assert(cp < caml_jit_code_end);
     caml_jit_assert(cp > caml_jit_code_base);
-    caml_jit_assert(pc < block->block_pend);
-    caml_jit_assert(pc >= block->block_prog);
+    caml_jit_assert(pc < segment->segment_pend);
+    caml_jit_assert(pc >= segment->segment_prog);
 
     /* determine the next instruction */
     instr = *pc;
@@ -387,8 +387,8 @@ static void *caml_jit_compile(code_t pc)
       jx86_pushq_reg(cp, JX86_RCX);
       jx86_movl_reg_imm(cp, JX86_EDI, instr);
       jx86_movq_reg_imm(cp, JX86_RSI, pc);
-      jx86_movq_reg_imm(cp, JX86_RDX, block->block_prog);
-      jx86_movq_reg_imm(cp, JX86_RCX, (block->block_pend - block->block_prog) * sizeof(*block->block_prog));
+      jx86_movq_reg_imm(cp, JX86_RDX, segment->segment_prog);
+      jx86_movq_reg_imm(cp, JX86_RCX, (segment->segment_pend - segment->segment_prog) * sizeof(*segment->segment_prog));
       jx86_call(cp, caml_jit_debug_addr);
       jx86_popq_reg(cp, JX86_RCX);
       jx86_popq_reg(cp, JX86_RDX);
@@ -1491,9 +1491,9 @@ static void *caml_jit_compile(code_t pc)
 
 void caml_prepare_bytecode(code_t prog, asize_t prog_size)
 {
-  caml_jit_block_t  *block;
-  caml_jit_block_t **blockp;
-  code_t             pend;
+  caml_jit_segment_t  *segment;
+  caml_jit_segment_t **segmentp;
+  code_t               pend;
 
   caml_jit_assert(prog != NULL);
   caml_jit_assert(prog_size > 0);
@@ -1502,25 +1502,25 @@ void caml_prepare_bytecode(code_t prog, asize_t prog_size)
   if (CAML_JIT_GNUC_LIKELY (caml_jit_enabled)) {
     pend = prog + (prog_size / sizeof(*prog));
     
-    /* register the code block (if not already registered) */
-    for (blockp = &caml_jit_block_head;;) {
-      block = *blockp;
-      if (block == NULL) {
-        /* we have a new code block here */
-        block = (caml_jit_block_t *) malloc(sizeof(*block));
-        block->block_prog = prog;
-        block->block_pend = pend;
-        block->block_next = NULL;
-        *blockp = block;
+    /* register the byte-code segment (if not already registered) */
+    for (segmentp = &caml_jit_segment_head;;) {
+      segment = *segmentp;
+      if (segment == NULL) {
+        /* we have a new code segment here */
+        segment = (caml_jit_segment_t *) malloc(sizeof(*segment));
+        segment->segment_prog = prog;
+        segment->segment_pend = pend;
+        segment->segment_next = NULL;
+        *segmentp = segment;
         break;
       }
-      else if (block->block_prog == prog && block->block_pend == pend) {
-        /* we know this block already */
+      else if (segment->segment_prog == prog && segment->segment_pend == pend) {
+        /* we know this segment already */
         break;
       }
-      caml_jit_assert(prog >= block->block_pend
-                      || pend < block->block_prog);
-      blockp = &block->block_next;
+      caml_jit_assert(prog >= segment->segment_pend
+                      || pend < segment->segment_prog);
+      segmentp = &segment->segment_next;
     }
   }
 }
@@ -1528,9 +1528,9 @@ void caml_prepare_bytecode(code_t prog, asize_t prog_size)
 
 void caml_release_bytecode(code_t prog, asize_t prog_size)
 {
-  caml_jit_block_t  *block;
-  caml_jit_block_t **blockp;
-  code_t             pend;
+  caml_jit_segment_t  *segment;
+  caml_jit_segment_t **segmentp;
+  code_t               pend;
 
   caml_jit_assert(prog != NULL);
   caml_jit_assert(prog_size > 0);
@@ -1539,17 +1539,17 @@ void caml_release_bytecode(code_t prog, asize_t prog_size)
   if (CAML_JIT_GNUC_LIKELY (caml_jit_enabled)) {
     pend = prog + (prog_size / sizeof(*prog));
 
-    /* unregister the code block */
-    for (blockp = &caml_jit_block_head;;) {
-      block = *blockp;
-      caml_jit_assert(block != NULL);
-      if (block->block_prog == prog && block->block_pend == pend) {
-        /* drop the block from the list */
-        *blockp = block->block_next;
-        free(block);
+    /* unregister the byte-code segment */
+    for (segmentp = &caml_jit_segment_head;;) {
+      segment = *segmentp;
+      caml_jit_assert(segment != NULL);
+      if (segment->segment_prog == prog && segment->segment_pend == pend) {
+        /* drop the segment from the list */
+        *segmentp = segment->segment_next;
+        free(segment);
         break;
       }
-      blockp = &block->block_next;
+      segmentp = &segment->segment_next;
     }
   }
 }

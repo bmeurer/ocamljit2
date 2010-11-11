@@ -18,6 +18,7 @@
 
 #include <sys/types.h>
 #include <sys/mman.h>
+#include <assert.h>
 #include <errno.h>
 #include <limits.h>
 #include <stdio.h>
@@ -172,7 +173,7 @@ void caml_jit_init()
     jx86_ud2(cp);                               /* ud2 */
     jx86_emit_uint64(cp, &caml_jit_compile);    /* .quad caml_jit_compile */
   }
-  caml_jit_assert(cp == caml_jit_code_ptr + CAML_JIT_CODE_SIZE);
+  assert(cp == caml_jit_code_ptr + CAML_JIT_CODE_SIZE);
 
   /* Generate the NOPs in front of the compile trampoline.
    * Each byte code instruction gets one NOP, so that in the
@@ -183,7 +184,7 @@ void caml_jit_init()
   caml_jit_code_end -= STOP;
   while (cp > caml_jit_code_end)
     *--cp = 0x90;
-  caml_jit_assert(cp == caml_jit_code_end);
+  assert(cp == caml_jit_code_end);
 
   cp = caml_jit_code_ptr;
 
@@ -240,11 +241,11 @@ static int caml_jit_pending_size = 0;
 
 static inline void caml_jit_pending_add(code_t pc)
 {
-  caml_jit_assert(pc != NULL);
-  caml_jit_assert(caml_jit_pending_size >= 0);
-  caml_jit_assert(caml_jit_pending_capacity >= caml_jit_pending_size);
-  caml_jit_assert(caml_jit_pending_buffer == NULL || caml_jit_pending_capacity > 0);
-  caml_jit_assert(caml_jit_pending_capacity == 0 || caml_jit_pending_buffer != NULL);
+  assert(pc != NULL);
+  assert(caml_jit_pending_size >= 0);
+  assert(caml_jit_pending_capacity >= caml_jit_pending_size);
+  assert(caml_jit_pending_buffer == NULL || caml_jit_pending_capacity > 0);
+  assert(caml_jit_pending_capacity == 0 || caml_jit_pending_buffer != NULL);
 
   if (CAML_JIT_GNUC_UNLIKELY (caml_jit_pending_size == caml_jit_pending_capacity)) {
     caml_jit_pending_capacity += 32;
@@ -258,11 +259,11 @@ static inline int caml_jit_pending_contains(code_t pc)
 {
   int i;
 
-  caml_jit_assert(pc != NULL);
-  caml_jit_assert(caml_jit_pending_size >= 0);
-  caml_jit_assert(caml_jit_pending_capacity >= caml_jit_pending_size);
-  caml_jit_assert(caml_jit_pending_buffer == NULL || caml_jit_pending_capacity > 0);
-  caml_jit_assert(caml_jit_pending_capacity == 0 || caml_jit_pending_buffer != NULL);
+  assert(pc != NULL);
+  assert(caml_jit_pending_size >= 0);
+  assert(caml_jit_pending_capacity >= caml_jit_pending_size);
+  assert(caml_jit_pending_buffer == NULL || caml_jit_pending_capacity > 0);
+  assert(caml_jit_pending_capacity == 0 || caml_jit_pending_buffer != NULL);
 
   for (i = 0; i < caml_jit_pending_size; ++i)
     if (caml_jit_pending_buffer[i] == pc)
@@ -281,31 +282,31 @@ static void *caml_jit_compile(code_t pc)
   caml_jit_segment_t *segment;
 #endif
 
-  caml_jit_assert(pc != NULL);
-  caml_jit_assert(caml_jit_enabled);
-  caml_jit_assert(*pc >= 0 && *pc <= STOP);
-  caml_jit_assert(caml_jit_pending_size >= 0);
-  caml_jit_assert(caml_jit_code_base != NULL);
-  caml_jit_assert(caml_jit_code_ptr < caml_jit_code_end);
-  caml_jit_assert(caml_jit_code_ptr > caml_jit_code_base);
-  caml_jit_assert(caml_jit_pending_capacity >= caml_jit_pending_size);
-  caml_jit_assert(caml_jit_pending_buffer == NULL || caml_jit_pending_capacity > 0);
-  caml_jit_assert(caml_jit_pending_capacity == 0 || caml_jit_pending_buffer != NULL);
+  assert(pc != NULL);
+  assert(caml_jit_enabled);
+  assert(*pc >= 0 && *pc <= STOP);
+  assert(caml_jit_pending_size >= 0);
+  assert(caml_jit_code_base != NULL);
+  assert(caml_jit_code_ptr < caml_jit_code_end);
+  assert(caml_jit_code_ptr > caml_jit_code_base);
+  assert(caml_jit_pending_capacity >= caml_jit_pending_size);
+  assert(caml_jit_pending_buffer == NULL || caml_jit_pending_capacity > 0);
+  assert(caml_jit_pending_capacity == 0 || caml_jit_pending_buffer != NULL);
 
 #ifdef DEBUG
   for (segment = caml_jit_segment_head;; segment = segment->segment_next) {
-    caml_jit_assert(segment != NULL);
+    assert(segment != NULL);
     if (segment->segment_prog <= pc && pc < segment->segment_pend)
       break;
   }
 #endif
 
   for (cp = caml_jit_code_ptr;; ) {
-    caml_jit_assert((sp % 8) == 0);
-    caml_jit_assert(cp < caml_jit_code_end);
-    caml_jit_assert(cp > caml_jit_code_base);
-    caml_jit_assert(pc < segment->segment_pend);
-    caml_jit_assert(pc >= segment->segment_prog);
+    assert((sp % 8) == 0);
+    assert(cp < caml_jit_code_end);
+    assert(cp > caml_jit_code_base);
+    assert(pc < segment->segment_pend);
+    assert(pc >= segment->segment_prog);
 
     /* determine the next instruction */
     instr = *pc;
@@ -324,11 +325,11 @@ static void *caml_jit_compile(code_t pc)
 
     jmp_stop_generation:
       /* generate a jmp to the known native code */
-      caml_jit_assert(sp == 0);
+      assert(sp == 0);
       jx86_jmp(cp, addr);
 
     stop_generation:
-      caml_jit_assert(sp == 0);
+      assert(sp == 0);
       if (caml_jit_pending_size > 0) {
         pc = caml_jit_pending_buffer[--caml_jit_pending_size];
         /* check if this pending item is already compiled */
@@ -349,9 +350,9 @@ static void *caml_jit_compile(code_t pc)
         sp = 0;
       }
 
-      caml_jit_assert(jcp > caml_jit_code_base);
-      caml_jit_assert(jcp + 4 < caml_jit_code_end);
-      caml_jit_assert(jcp[0] == 0
+      assert(jcp > caml_jit_code_base);
+      assert(jcp + 4 < caml_jit_code_end);
+      assert(jcp[0] == 0
                       || (jcp[0] == 0x0f && jcp[1] >= 0x80 && jcp[1] <= 0x8f));
 
       if (CAML_JIT_GNUC_UNLIKELY (jcp[0] == 0)) {
@@ -364,11 +365,11 @@ static void *caml_jit_compile(code_t pc)
       }
     }
 
-    caml_jit_assert(instr >= 0);
-    caml_jit_assert(instr <= STOP);
-    caml_jit_assert((sp % 8) == 0);
-    caml_jit_assert(cp < caml_jit_code_end);
-    caml_jit_assert(cp > caml_jit_code_base);
+    assert(instr >= 0);
+    assert(instr <= STOP);
+    assert((sp % 8) == 0);
+    assert(cp < caml_jit_code_end);
+    assert(cp > caml_jit_code_base);
 
     /* setup the native code offset for this instruction */
     if (CAML_JIT_GNUC_LIKELY (sp == 0))
@@ -558,7 +559,7 @@ static void *caml_jit_compile(code_t pc)
       unsigned char *jae8;
       int required = *pc++;
 
-      caml_jit_assert(sp == 0);
+      assert(sp == 0);
 
       /* check if we have too few extra args */
       jx86_cmpq_reg_imm(cp, JX86_R13, Val_int(required));
@@ -910,14 +911,14 @@ static void *caml_jit_compile(code_t pc)
           /* neither "then" nor "else" are known */
           ptrdiff_t offset = cp - caml_jit_code_base;
 
-          caml_jit_assert(*pc >= 0);
-          caml_jit_assert(*dpc >= 0);
-          caml_jit_assert(offset > STOP);
-          caml_jit_assert(offset <= INT_MAX);
+          assert(*pc >= 0);
+          assert(*dpc >= 0);
+          assert(offset > STOP);
+          assert(offset <= INT_MAX);
 
           if (*pc > STOP) {
             /* "then" address is already on the pending list */
-            caml_jit_assert(caml_jit_pending_contains(pc));
+            assert(caml_jit_pending_contains(pc));
             jx86_jcc32_forward(cp, op ^ 1);
             *((opcode_t *) cp - 1) = *pc;
             *pc = offset;
@@ -927,7 +928,7 @@ static void *caml_jit_compile(code_t pc)
             /* add "else" address if not already pending */
             if (*dpc <= STOP)
               caml_jit_pending_add(dpc);
-            caml_jit_assert(caml_jit_pending_contains(dpc));
+            assert(caml_jit_pending_contains(dpc));
             jx86_jcc32_forward(cp, op);
             *((opcode_t *) cp - 1) = *dpc;
             *dpc = offset;
@@ -983,14 +984,14 @@ static void *caml_jit_compile(code_t pc)
         else {
           ptrdiff_t offset = cp - caml_jit_code_base;
 
-          caml_jit_assert(*dpc >= 0);
-          caml_jit_assert(offset > STOP);
-          caml_jit_assert(offset <= INT_MAX);
+          assert(*dpc >= 0);
+          assert(offset > STOP);
+          assert(offset <= INT_MAX);
 
           /* add address if not already pending */
           if (*dpc <= STOP)
             caml_jit_pending_add(dpc);
-          caml_jit_assert(caml_jit_pending_contains(dpc));
+          assert(caml_jit_pending_contains(dpc));
           jx86_emit_uint8(cp, 0);
           jx86_emit_int32(cp, *dpc);
           *dpc = offset;
@@ -1036,7 +1037,7 @@ static void *caml_jit_compile(code_t pc)
         sp = 0;
         pc[-1] = (opcode_t) (cp - caml_jit_code_end);
       }
-      caml_jit_assert(pc[-1] < 0);
+      assert(pc[-1] < 0);
 
       jx86_movq_reg_imm(cp, JX86_RDX, &caml_something_to_do);
       jx86_testl_membase_imm(cp, JX86_RDX, 0, -1);
@@ -1046,7 +1047,7 @@ static void *caml_jit_compile(code_t pc)
       jx86_jmp(cp, &caml_jit_rt_process_signal);
       jx86_jcc8_patch(cp, jnz8);
       if (instr == POPTRAP) {
-        caml_jit_assert(sp == 0);
+        assert(sp == 0);
         jx86_movq_reg_imm(cp, JX86_RDI, &caml_trapsp);
         jx86_movq_reg_membase(cp, JX86_RCX, JX86_R14, 1 * 8);
         sp = 4 * 8;
@@ -1479,11 +1480,11 @@ static void *caml_jit_compile(code_t pc)
   addr = caml_jit_code_ptr;
   caml_jit_code_ptr = cp;
 
-  caml_jit_assert(caml_jit_pending_capacity == 0 || caml_jit_pending_buffer != NULL);
-  caml_jit_assert(caml_jit_pending_buffer == NULL || caml_jit_pending_capacity > 0);
-  caml_jit_assert(caml_jit_pending_capacity >= 0);
-  caml_jit_assert(caml_jit_pending_size == 0);
-  caml_jit_assert(sp == 0);
+  assert(caml_jit_pending_capacity == 0 || caml_jit_pending_buffer != NULL);
+  assert(caml_jit_pending_buffer == NULL || caml_jit_pending_capacity > 0);
+  assert(caml_jit_pending_capacity >= 0);
+  assert(caml_jit_pending_size == 0);
+  assert(sp == 0);
 
   return addr;
 }
@@ -1495,9 +1496,9 @@ void caml_prepare_bytecode(code_t prog, asize_t prog_size)
   caml_jit_segment_t **segmentp;
   code_t               pend;
 
-  caml_jit_assert(prog != NULL);
-  caml_jit_assert(prog_size > 0);
-  caml_jit_assert((prog_size % sizeof(*prog)) == 0);
+  assert(prog != NULL);
+  assert(prog_size > 0);
+  assert((prog_size % sizeof(*prog)) == 0);
 
   if (CAML_JIT_GNUC_LIKELY (caml_jit_enabled)) {
     pend = prog + (prog_size / sizeof(*prog));
@@ -1518,8 +1519,8 @@ void caml_prepare_bytecode(code_t prog, asize_t prog_size)
         /* we know this segment already */
         break;
       }
-      caml_jit_assert(prog >= segment->segment_pend
-                      || pend < segment->segment_prog);
+      assert(prog >= segment->segment_pend
+             || pend < segment->segment_prog);
       segmentp = &segment->segment_next;
     }
   }
@@ -1532,9 +1533,9 @@ void caml_release_bytecode(code_t prog, asize_t prog_size)
   caml_jit_segment_t **segmentp;
   code_t               pend;
 
-  caml_jit_assert(prog != NULL);
-  caml_jit_assert(prog_size > 0);
-  caml_jit_assert((prog_size % sizeof(*prog)) == 0);
+  assert(prog != NULL);
+  assert(prog_size > 0);
+  assert((prog_size % sizeof(*prog)) == 0);
 
   if (CAML_JIT_GNUC_LIKELY (caml_jit_enabled)) {
     pend = prog + (prog_size / sizeof(*prog));
@@ -1542,7 +1543,7 @@ void caml_release_bytecode(code_t prog, asize_t prog_size)
     /* unregister the byte-code segment */
     for (segmentp = &caml_jit_segment_head;;) {
       segment = *segmentp;
-      caml_jit_assert(segment != NULL);
+      assert(segment != NULL);
       if (segment->segment_prog == prog && segment->segment_pend == pend) {
         /* drop the segment from the list */
         *segmentp = segment->segment_next;

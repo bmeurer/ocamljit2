@@ -22,16 +22,6 @@
 #include <stddef.h>
 #include <stdlib.h>
 
-/* Assertions */
-#if defined(DEBUG)
-# include <assert.h>
-# define caml_jit_assert               assert
-# define caml_jit_assert_not_reached() assert(0)
-#else
-# define caml_jit_assert(x)            ((void) 0)
-# define caml_jit_assert_not_reached() ((void) 0)
-#endif
-
 /* GNU CC detection */
 #if defined(__GNUC__) && defined(__GNUC_MINOR__)
 # define CAML_JIT_GNUC_PREREQ(major, minor) ((__GNUC__ << 16) + __GNUC_MINOR__ >= ((major) << 16) + (minor))

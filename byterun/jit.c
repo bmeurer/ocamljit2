@@ -19,6 +19,7 @@
 #include <sys/types.h>
 #include <sys/mman.h>
 #include <errno.h>
+#include <limits.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
@@ -60,20 +61,20 @@ extern value caml_gt_float(value, value);
 extern value caml_cache_public_method2(value *, value, opcode_t *);
 
 
-static caml_jit_uint8_t *caml_jit_compile(code_t pc);
+static void *caml_jit_compile(code_t pc);
 
 
 static caml_jit_block_t *caml_jit_block_head = NULL;
-caml_jit_uint8_t *caml_jit_code_base = NULL;
-caml_jit_uint8_t *caml_jit_code_end = NULL;
-caml_jit_uint8_t *caml_jit_code_ptr = NULL;
-static caml_jit_uint8_t *caml_jit_code_raise_zero_divide = NULL;
+unsigned char *caml_jit_code_base = NULL;
+unsigned char *caml_jit_code_end = NULL;
+unsigned char *caml_jit_code_ptr = NULL;
+static unsigned char *caml_jit_code_raise_zero_divide = NULL;
 opcode_t caml_jit_callback_return = 0; /* for caml_callbackN_exn */
 unsigned caml_jit_enabled = 0;
 
 
 #ifdef DEBUG
-static caml_jit_uint8_t *caml_jit_debug_addr = NULL;
+static unsigned char *caml_jit_debug_addr = NULL;
 static long caml_bcodcount = 0;
 
 static void caml_jit_debug(opcode_t instr, code_t pc, code_t prog, asize_t prog_size, value accu, value extra_args, value env, value *sp)
@@ -101,7 +102,7 @@ static void caml_jit_debug(opcode_t instr, code_t pc, code_t prog, asize_t prog_
 
 void caml_jit_init()
 {
-  caml_jit_uint8_t *cp;
+  unsigned char *cp;
 
   /* check if already initialized */
   if (caml_jit_code_base != NULL)
@@ -113,10 +114,10 @@ void caml_jit_init()
     return;
 
   /* allocate memory for the JIT code */
-  cp = (caml_jit_uint8_t *) mmap(NULL, CAML_JIT_CODE_SIZE,
-                                 PROT_EXEC | PROT_READ | PROT_WRITE,
-                                 MAP_ANON | MAP_PRIVATE, 0, (off_t) 0);
-  if (cp == (caml_jit_uint8_t *) MAP_FAILED)
+  cp = (unsigned char *) mmap(NULL, CAML_JIT_CODE_SIZE,
+                              PROT_EXEC | PROT_READ | PROT_WRITE,
+                              MAP_ANON | MAP_PRIVATE, 0, (off_t) 0);
+  if (cp == (unsigned char *) MAP_FAILED)
     caml_fatal_error_arg("Failed to allocate JIT code area (%s)!\n", strerror(errno));
   caml_jit_code_ptr = cp;
 
@@ -151,7 +152,7 @@ void caml_jit_init()
    * fall-through path.
    */
   caml_jit_code_end = cp + CAML_JIT_CODE_SIZE - (2 + 5 + 2 + 2 + 2);
-  if (JX86_IS_IMM32((caml_jit_uint8_t *) &caml_jit_compile - caml_jit_code_end - 2 - 5)) {
+  if (JX86_IS_IMM32((unsigned char *) &caml_jit_compile - caml_jit_code_end - 2 - 5)) {
     cp = caml_jit_code_end;
     jx86_xchgq_reg_reg(cp, JX86_RBX, JX86_RAX); /* xchgq %rax, %rbx */
     jx86_call(cp, &caml_jit_compile);           /* call  caml_jit_compile(%rip) */
@@ -179,7 +180,7 @@ void caml_jit_init()
    * to the compile trampoline.
    */
   cp = caml_jit_code_end;
-  caml_jit_code_end -= BREAK;
+  caml_jit_code_end -= STOP;
   while (cp > caml_jit_code_end)
     *--cp = 0x90;
   caml_jit_assert(cp == caml_jit_code_end);
@@ -228,7 +229,7 @@ void caml_jit_init()
   jx86_ret(cp);
 #endif
 
-  caml_jit_code_base = cp - (BREAK + 1);
+  caml_jit_code_base = cp - (STOP + 1);
   caml_jit_code_ptr = cp;
 }
 
@@ -269,10 +270,10 @@ static inline int caml_jit_pending_contains(code_t pc)
   return 0;
 }
 
-static caml_jit_uint8_t *caml_jit_compile(code_t pc)
+static void *caml_jit_compile(code_t pc)
 {
   void *addr;
-  caml_jit_uint8_t *cp;
+  unsigned char *cp;
   opcode_t instr;
   unsigned op;
   int sp = 0;
@@ -282,7 +283,7 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
 
   caml_jit_assert(pc != NULL);
   caml_jit_assert(caml_jit_enabled);
-  caml_jit_assert(*pc >= 0 && *pc <= BREAK);
+  caml_jit_assert(*pc >= 0 && *pc <= STOP);
   caml_jit_assert(caml_jit_pending_size >= 0);
   caml_jit_assert(caml_jit_code_base != NULL);
   caml_jit_assert(caml_jit_code_ptr < caml_jit_code_end);
@@ -339,8 +340,8 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
     }
 
     /* patch forward jccs/jmps to this byte code address */
-    while (CAML_JIT_GNUC_UNLIKELY (instr > BREAK)) {
-      caml_jit_uint8_t *jcp = caml_jit_code_base + instr;
+    while (CAML_JIT_GNUC_UNLIKELY (instr > STOP)) {
+      unsigned char *jcp = caml_jit_code_base + instr;
 
       /* flush the stack pointer */
       if (sp != 0) {
@@ -354,24 +355,24 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
                       || (jcp[0] == 0x0f && jcp[1] >= 0x80 && jcp[1] <= 0x8f));
 
       if (CAML_JIT_GNUC_UNLIKELY (jcp[0] == 0)) {
-        instr = *((caml_jit_int32_t *) (jcp + 1));
-        *((caml_jit_uintptr_t *) jcp) = (caml_jit_uintptr_t) cp;
+        instr = *((opcode_t *) (jcp + 1));
+        *((unsigned char **) jcp) = cp;
       }
       else {
-        instr = *((caml_jit_int32_t *) (jcp + 2));
+        instr = *((opcode_t *) (jcp + 2));
         jx86_jcc32_patch(cp, jcp);
       }
     }
 
     caml_jit_assert(instr >= 0);
-    caml_jit_assert(instr <= BREAK);
+    caml_jit_assert(instr <= STOP);
     caml_jit_assert((sp % 8) == 0);
     caml_jit_assert(cp < caml_jit_code_end);
     caml_jit_assert(cp > caml_jit_code_base);
 
     /* setup the native code offset for this instruction */
     if (CAML_JIT_GNUC_LIKELY (sp == 0))
-      *((caml_jit_int32_t *) pc) = (caml_jit_int32_t) (cp - caml_jit_code_end);
+      *pc = (opcode_t) (cp - caml_jit_code_end);
 
 #ifdef DEBUG
     if (caml_trace_flag && caml_jit_debug_addr != NULL) {
@@ -493,7 +494,7 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
     case APPLY1:
       addr = &caml_jit_rt_apply1;
     applyX:
-      jx86_movq_reg_imm(cp, JX86_RDI, (caml_jit_uintptr_t) pc);
+      jx86_movq_reg_imm(cp, JX86_RDI, (ssize_t) pc);
     apply:
       if (sp != 0) {
         jx86_leaq_reg_membase(cp, JX86_R14, JX86_R14, sp);
@@ -554,7 +555,7 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
       goto flush_call_addr;
 
     case GRAB: {
-      caml_jit_uint8_t *jae8;
+      unsigned char *jae8;
       int required = *pc++;
 
       caml_jit_assert(sp == 0);
@@ -630,7 +631,7 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
       }
       jx86_call(cp, addr);
       jx86_movq_membase_imm(cp, JX86_R15, 0 * 8, Make_header(wosize, Closure_tag, Caml_black));
-      jx86_movq_reg_imm(cp, JX86_RDX, (caml_jit_intptr_t) (pc + pc[0]));
+      jx86_movq_reg_imm(cp, JX86_RDX, (ssize_t) (pc + pc[0]));
       if (--num_vars >= 0) {
         jx86_movq_membase_reg(cp, JX86_R15, num_funs * 16, JX86_RAX);
         for (i = 0; i < num_vars; ++i, sp += 8) {
@@ -907,28 +908,28 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
         }
         else {
           /* neither "then" nor "else" are known */
-          caml_jit_intptr_t offset = cp - caml_jit_code_base;
+          ptrdiff_t offset = cp - caml_jit_code_base;
 
           caml_jit_assert(*pc >= 0);
           caml_jit_assert(*dpc >= 0);
           caml_jit_assert(offset > STOP);
-          caml_jit_assert(offset <= CAML_JIT_INT32_MAX);
+          caml_jit_assert(offset <= INT_MAX);
 
-          if (*pc > BREAK) {
+          if (*pc > STOP) {
             /* "then" address is already on the pending list */
             caml_jit_assert(caml_jit_pending_contains(pc));
             jx86_jcc32_forward(cp, op ^ 1);
-            *((caml_jit_int32_t *) cp - 1) = *pc;
+            *((opcode_t *) cp - 1) = *pc;
             *pc = offset;
             pc = dpc;
           }
           else {
             /* add "else" address if not already pending */
-            if (*dpc <= BREAK)
+            if (*dpc <= STOP)
               caml_jit_pending_add(dpc);
             caml_jit_assert(caml_jit_pending_contains(dpc));
             jx86_jcc32_forward(cp, op);
-            *((caml_jit_int32_t *) cp - 1) = *dpc;
+            *((opcode_t *) cp - 1) = *dpc;
             *dpc = offset;
           }
         }
@@ -944,8 +945,8 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
       unsigned sizes = *pc++;
       unsigned num_consts = sizes & 0xffff;
       unsigned num_blocks = sizes >> 16;
-      caml_jit_uint8_t *jz8;
-      caml_jit_uint8_t *leaq;
+      unsigned char *jz8;
+      unsigned char *leaq;
 
       /* flush the stack pointer */
       if (sp != 0) {
@@ -980,14 +981,14 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
           jx86_emit_uint64(cp, caml_jit_code_end + *dpc);
         }
         else {
-          caml_jit_intptr_t offset = cp - caml_jit_code_base;
+          ptrdiff_t offset = cp - caml_jit_code_base;
 
           caml_jit_assert(*dpc >= 0);
-          caml_jit_assert(offset > BREAK);
-          caml_jit_assert(offset <= CAML_JIT_INT32_MAX);
+          caml_jit_assert(offset > STOP);
+          caml_jit_assert(offset <= INT_MAX);
 
           /* add address if not already pending */
-          if (*dpc <= BREAK)
+          if (*dpc <= STOP)
             caml_jit_pending_add(dpc);
           caml_jit_assert(caml_jit_pending_contains(dpc));
           jx86_emit_uint8(cp, 0);
@@ -1024,7 +1025,7 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
 
     case CHECK_SIGNALS:
     case POPTRAP: {
-      caml_jit_uint8_t *jnz8;
+      unsigned char *jnz8;
 
       /* CHECK_SIGNALS is likely a branch target for loops,
        * so ensure to assign a native address to avoid
@@ -1033,7 +1034,7 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
       if (sp != 0) {
         jx86_leaq_reg_membase(cp, JX86_R14, JX86_R14, sp);
         sp = 0;
-        *((caml_jit_int32_t *) pc - 1) = (caml_jit_int32_t) (cp - caml_jit_code_end);
+        pc[-1] = (opcode_t) (cp - caml_jit_code_end);
       }
       caml_jit_assert(pc[-1] < 0);
 
@@ -1447,7 +1448,7 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
       sp -= 8;
       jx86_movq_membase_reg(cp, JX86_R14, sp, JX86_RAX);
       jx86_movq_reg_imm(cp, JX86_RSI, Val_int(*pc++));
-      jx86_movq_reg_imm(cp, JX86_RDX, (caml_jit_intptr_t) pc);
+      jx86_movq_reg_imm(cp, JX86_RDX, (ssize_t) pc);
       pc++;
       addr = &caml_cache_public_method2;
       goto call_addr;
@@ -1459,13 +1460,10 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
       goto call_addr;
 
 /* Debugging and machine control */
+
     case STOP:
       addr = &caml_jit_rt_stop;
       goto flush_jmp_stop_generation;
-
-    case EVENT:
-    case BREAK:
-      break;
 
     default:
 #if _MSC_VER >= 1200      
@@ -1473,7 +1471,7 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
 #else
       caml_fatal_error_arg("Fatal error: bad opcode (%"
                            ARCH_INTNAT_PRINTF_FORMAT "x)\n",
-                           (char *) (caml_jit_intptr_t) instr);
+                           (char *) (intnat) instr);
 #endif
     }
   }
@@ -1487,7 +1485,7 @@ static caml_jit_uint8_t *caml_jit_compile(code_t pc)
   caml_jit_assert(caml_jit_pending_size == 0);
   caml_jit_assert(sp == 0);
 
-  return (caml_jit_uint8_t *) addr;
+  return addr;
 }
 
 

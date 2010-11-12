@@ -68,7 +68,6 @@ static void *caml_jit_compile(code_t pc);
 static caml_jit_segment_t *caml_jit_segment_head = NULL;
 unsigned char *caml_jit_code_base = NULL;
 unsigned char *caml_jit_code_end = NULL;
-unsigned char *caml_jit_code_ptr = NULL;
 static unsigned char *caml_jit_code_raise_zero_divide = NULL;
 opcode_t caml_jit_callback_return = 0; /* for caml_callbackN_exn */
 unsigned caml_jit_enabled = 0;
@@ -101,8 +100,53 @@ static void caml_jit_debug(opcode_t instr, code_t pc, code_t prog, asize_t prog_
 #endif
 
 
+static unsigned char    *caml_jit_chunk_next = NULL;
+static unsigned char    *caml_jit_chunk_limit = NULL;
+static caml_jit_chunk_t *caml_jit_chunk_free = NULL;
+
+static caml_jit_chunk_t *caml_jit_chunk_alloc() CAML_JIT_GNUC_MALLOC CAML_JIT_GNUC_WARN_UNUSED_RESULT;
+
+static inline void caml_jit_chunk_clear(caml_jit_chunk_t *chunk)
+{
+#if defined(DEBUG)
+  unsigned char *cp;
+
+  assert(chunk != NULL);
+
+  memset(&chunk->chunk_next, 0xaa, sizeof(chunk->chunk_next));
+  for (cp = chunk->chunk_data; cp < CAML_JIT_CHUNK_END(chunk); )
+    jx86_ud2(cp);
+
+  assert(cp == CAML_JIT_CHUNK_END(chunk));
+#else
+  (void) chunk;
+#endif
+}
+
+static caml_jit_chunk_t *caml_jit_chunk_alloc()
+{
+  caml_jit_chunk_t *chunk = caml_jit_chunk_free;
+
+  if (CAML_JIT_GNUC_UNLIKELY (chunk != NULL)) {
+    caml_jit_chunk_free = chunk->chunk_next;
+  }
+  else if (CAML_JIT_GNUC_LIKELY (caml_jit_chunk_next < caml_jit_chunk_limit)) {
+    chunk = (caml_jit_chunk_t *) caml_jit_chunk_next;
+    caml_jit_chunk_next += CAML_JIT_CHUNK_SIZE;
+  }
+  else {
+    caml_fatal_error("Fatal error: Native code space exhausted!\n");
+  }
+
+  caml_jit_chunk_clear(chunk);
+
+  return chunk;
+}
+
+
 void caml_jit_init()
 {
+  unsigned char *bp;
   unsigned char *cp;
 
   /* check if already initialized */
@@ -115,12 +159,16 @@ void caml_jit_init()
     return;
 
   /* allocate memory for the JIT code */
-  cp = (unsigned char *) mmap(NULL, CAML_JIT_CODE_SIZE,
+  bp = (unsigned char *) mmap(NULL, CAML_JIT_CODE_SIZE,
                               PROT_EXEC | PROT_READ | PROT_WRITE,
                               MAP_ANON | MAP_PRIVATE, 0, (off_t) 0);
-  if (cp == (unsigned char *) MAP_FAILED)
-    caml_fatal_error_arg("Failed to allocate JIT code area (%s)!\n", strerror(errno));
-  caml_jit_code_ptr = cp;
+  if (bp == (unsigned char *) MAP_FAILED)
+    caml_fatal_error_arg("Fatal error: Failed to allocate JIT code area (%s)!\n", strerror(errno));
+  cp = bp;
+
+  /* divide code space into chunks (last one reserved for special stuff) */
+  caml_jit_chunk_next = bp;
+  caml_jit_chunk_limit = bp + (CAML_JIT_CODE_SIZE - CAML_JIT_CHUNK_SIZE);
 
   /* Generate the compile trampoline code at the end. If
    * caml_jit_compile is within +/-2GB of code area, we
@@ -173,7 +221,7 @@ void caml_jit_init()
     jx86_ud2(cp);                               /* ud2 */
     jx86_emit_uint64(cp, &caml_jit_compile);    /* .quad caml_jit_compile */
   }
-  assert(cp == caml_jit_code_ptr + CAML_JIT_CODE_SIZE);
+  assert(cp == bp + CAML_JIT_CODE_SIZE);
 
   /* Generate the NOPs in front of the compile trampoline.
    * Each byte code instruction gets one NOP, so that in the
@@ -186,7 +234,7 @@ void caml_jit_init()
     *--cp = 0x90;
   assert(cp == caml_jit_code_end);
 
-  cp = caml_jit_code_ptr;
+  cp = caml_jit_chunk_limit;
 
   /* Setup the "raise zero divide" code (used by DIVINT/MODINT) */
   caml_jit_code_raise_zero_divide = cp;
@@ -230,8 +278,7 @@ void caml_jit_init()
   jx86_ret(cp);
 #endif
 
-  caml_jit_code_base = cp - (STOP + 1);
-  caml_jit_code_ptr = cp;
+  caml_jit_code_base = bp - (STOP + 1);
 }
 
 
@@ -271,40 +318,77 @@ static inline int caml_jit_pending_contains(code_t pc)
   return 0;
 }
 
+
+static void caml_jit_segment_alloc_chunk(caml_jit_segment_t *segment)
+{
+  caml_jit_chunk_t *chunk;
+
+  assert(segment != NULL);
+
+  chunk = caml_jit_chunk_alloc();
+  chunk->chunk_next = segment->segment_chunks;
+  segment->segment_chunks = chunk;
+  segment->segment_current = chunk->chunk_data;
+  segment->segment_limit = CAML_JIT_CHUNK_END(chunk) - CAML_JIT_CODE_RESERVE;
+}
+
+
+static unsigned char *caml_jit_segment_continue(caml_jit_segment_t *segment, unsigned char *cp)
+{
+  assert(segment != NULL);
+  assert(cp >= segment->segment_current);
+  assert(segment->segment_chunks != NULL);
+  assert(cp < CAML_JIT_CHUNK_END(segment->segment_chunks) - 5);
+
+  caml_jit_segment_alloc_chunk(segment);
+  jx86_jmp(cp, segment->segment_current);
+
+  return segment->segment_current;
+}
+
+
 static void *caml_jit_compile(code_t pc)
 {
+  unsigned char *start;
   void *addr;
   unsigned char *cp;
   opcode_t instr;
   unsigned op;
   int sp = 0;
-#ifdef DEBUG
   caml_jit_segment_t *segment;
-#endif
 
   assert(pc != NULL);
   assert(caml_jit_enabled);
   assert(*pc >= 0 && *pc <= STOP);
   assert(caml_jit_pending_size >= 0);
   assert(caml_jit_code_base != NULL);
-  assert(caml_jit_code_ptr < caml_jit_code_end);
-  assert(caml_jit_code_ptr > caml_jit_code_base);
   assert(caml_jit_pending_capacity >= caml_jit_pending_size);
   assert(caml_jit_pending_buffer == NULL || caml_jit_pending_capacity > 0);
   assert(caml_jit_pending_capacity == 0 || caml_jit_pending_buffer != NULL);
 
-#ifdef DEBUG
   for (segment = caml_jit_segment_head;; segment = segment->segment_next) {
     assert(segment != NULL);
-    if (segment->segment_prog <= pc && pc < segment->segment_pend)
+    if (segment->segment_prog <= pc && pc < segment->segment_pend) {
+      /* make sure that reasonable space is available for this segment */
+      if (CAML_JIT_GNUC_UNLIKELY (segment->segment_current >= segment->segment_limit))
+        caml_jit_segment_alloc_chunk(segment);
       break;
+    }
   }
-#endif
 
-  for (cp = caml_jit_code_ptr;; ) {
+  assert(segment != NULL);
+  assert(segment->segment_current != NULL);
+
+  /* setup the native start address */
+  cp = start = segment->segment_current;
+  instr = *pc;
+  *pc = (opcode_t) (cp - caml_jit_code_end);
+  goto next;
+
+  for (;; ) {
     assert((sp % 8) == 0);
-    assert(cp < caml_jit_code_end);
-    assert(cp > caml_jit_code_base);
+    assert(cp >= segment->segment_current);
+    assert(cp < CAML_JIT_CHUNK_END(segment->segment_chunks));
     assert(pc < segment->segment_pend);
     assert(pc >= segment->segment_prog);
 
@@ -335,45 +419,58 @@ static void *caml_jit_compile(code_t pc)
         /* check if this pending item is already compiled */
         if (CAML_JIT_GNUC_UNLIKELY (*pc < 0))
           goto stop_generation;
+
+        /* allocate a new chunk as necessary */
+        if (CAML_JIT_GNUC_UNLIKELY (cp >= segment->segment_limit)) {
+          caml_jit_segment_alloc_chunk(segment);
+          cp = segment->segment_current;
+        }
         continue;
       }
       break;
     }
 
-    /* patch forward jccs/jmps to this byte code address */
-    while (CAML_JIT_GNUC_UNLIKELY (instr > STOP)) {
-      unsigned char *jcp = caml_jit_code_base + instr;
-
+    /* patch forward jumps to this byte-code address */
+    if (CAML_JIT_GNUC_UNLIKELY (instr > STOP)) {
       /* flush the stack pointer */
       if (sp != 0) {
         jx86_leaq_reg_membase(cp, JX86_R14, JX86_R14, sp);
         sp = 0;
       }
 
-      assert(jcp > caml_jit_code_base);
-      assert(jcp + 4 < caml_jit_code_end);
-      assert(jcp[0] == 0
-                      || (jcp[0] == 0x0f && jcp[1] >= 0x80 && jcp[1] <= 0x8f));
+      /* patch the forward jumps */
+      do {
+        unsigned char *jcp = caml_jit_code_base + instr;
 
-      if (CAML_JIT_GNUC_UNLIKELY (jcp[0] == 0)) {
-        instr = *((opcode_t *) (jcp + 1));
-        *((unsigned char **) jcp) = cp;
-      }
-      else {
-        instr = *((opcode_t *) (jcp + 2));
-        jx86_jcc32_patch(cp, jcp);
-      }
+        assert(jcp > caml_jit_code_base);
+        assert(jcp + 4 < caml_jit_code_end);
+        assert(jcp[0] == 0
+               || (jcp[0] == 0x0f && jcp[1] >= 0x80 && jcp[1] <= 0x8f));
+
+        if (CAML_JIT_GNUC_UNLIKELY (jcp[0] == 0)) {
+          instr = *((opcode_t *) (jcp + 1));
+          *((unsigned char **) jcp) = cp;
+        }
+        else {
+          instr = *((opcode_t *) (jcp + 2));
+          jx86_jcc32_patch(cp, jcp);
+        }
+      } while (CAML_JIT_GNUC_UNLIKELY (instr > STOP));
+
+      /* setup the native code offset for this instruction */
+      *pc = (opcode_t) (cp - caml_jit_code_end);
     }
 
+    /* make sure we have reasonable space available */
+    if (CAML_JIT_GNUC_UNLIKELY (cp > segment->segment_limit))
+      cp = caml_jit_segment_continue(segment, cp);
+
+  next:
     assert(instr >= 0);
     assert(instr <= STOP);
     assert((sp % 8) == 0);
-    assert(cp < caml_jit_code_end);
-    assert(cp > caml_jit_code_base);
-
-    /* setup the native code offset for this instruction */
-    if (CAML_JIT_GNUC_LIKELY (sp == 0))
-      *pc = (opcode_t) (cp - caml_jit_code_end);
+    assert(cp >= segment->segment_current);
+    assert(cp < CAML_JIT_CHUNK_END(segment->segment_chunks));
 
 #ifdef DEBUG
     if (caml_trace_flag && caml_jit_debug_addr != NULL) {
@@ -399,6 +496,11 @@ static void *caml_jit_compile(code_t pc)
       if (sp != 0) {
         jx86_popq_reg(cp, JX86_R14);
       }
+
+      /* make sure we have reasonable space available */
+      if (CAML_JIT_GNUC_UNLIKELY (cp > segment->segment_limit))
+        cp = caml_jit_segment_continue(segment, cp);
+
     }
 #endif
 
@@ -532,6 +634,8 @@ static void *caml_jit_compile(code_t pc)
        */
       newsp = sp + (*pc++ - num_args) * 8;
       for (i = num_args - 1; i >= 0; --i) {
+        if (CAML_JIT_GNUC_UNLIKELY (cp > segment->segment_limit))
+          cp = caml_jit_segment_continue(segment, cp);
         jx86_movq_reg_membase(cp, JX86_RSI, JX86_R14, sp + i * 8);
         jx86_movq_membase_reg(cp, JX86_R14, newsp + i * 8, JX86_RSI);
       }
@@ -636,6 +740,8 @@ static void *caml_jit_compile(code_t pc)
       if (--num_vars >= 0) {
         jx86_movq_membase_reg(cp, JX86_R15, num_funs * 16, JX86_RAX);
         for (i = 0; i < num_vars; ++i, sp += 8) {
+          if (CAML_JIT_GNUC_UNLIKELY (cp > segment->segment_limit))
+            cp = caml_jit_segment_continue(segment, cp);
           jx86_movq_reg_membase(cp, JX86_RSI, JX86_R14, sp);
           jx86_movq_membase_reg(cp, JX86_R15, num_funs * 16 + (i + 1) * 8, JX86_RSI);
         }
@@ -645,6 +751,8 @@ static void *caml_jit_compile(code_t pc)
       sp -= 8;
       jx86_movq_membase_reg(cp, JX86_R14, sp, JX86_RAX);
       for (i = 1; i < num_funs; ++i) {
+        if (CAML_JIT_GNUC_UNLIKELY (cp > segment->segment_limit))
+          cp = caml_jit_segment_continue(segment, cp);
         jx86_leaq_reg_membase(cp, JX86_RSI, JX86_R15, (i * 2 + 1) * 8);
         jx86_movq_reg_imm(cp, JX86_RDI, pc + pc[i]);
         jx86_movq_membase_imm(cp, JX86_RSI, -1 * 8, Make_header(i * 2, Infix_tag, Caml_white));
@@ -955,6 +1063,10 @@ static void *caml_jit_compile(code_t pc)
         sp = 0;
       }
 
+      /* reserve space for the jumptable */
+      if (CAML_JIT_GNUC_UNLIKELY (cp + (num_consts + num_blocks) * sizeof(void *) > segment->segment_limit))
+        cp = caml_jit_segment_continue(segment, cp);
+
       leaq = cp;
       jx86_leaq_reg_forward(cp, JX86_RDX);
       if (num_consts) {
@@ -1035,8 +1147,8 @@ static void *caml_jit_compile(code_t pc)
       if (sp != 0) {
         jx86_leaq_reg_membase(cp, JX86_R14, JX86_R14, sp);
         sp = 0;
-        pc[-1] = (opcode_t) (cp - caml_jit_code_end);
       }
+      pc[-1] = (opcode_t) (cp - caml_jit_code_end);
       assert(pc[-1] < 0);
 
       jx86_movq_reg_imm(cp, JX86_RDX, &caml_something_to_do);
@@ -1214,6 +1326,9 @@ static void *caml_jit_compile(code_t pc)
         jx86_leaq_reg_membase(cp, JX86_R14, JX86_R14, sp);
         sp = 0;
       }
+
+      if (CAML_JIT_GNUC_UNLIKELY (cp > segment->segment_limit))
+        cp = caml_jit_segment_continue(segment, cp);
 
       /* save environment pointer */
       jx86_movq_membase_reg(cp, JX86_R14, sp, JX86_R12);
@@ -1477,8 +1592,7 @@ static void *caml_jit_compile(code_t pc)
     }
   }
 
-  addr = caml_jit_code_ptr;
-  caml_jit_code_ptr = cp;
+  segment->segment_current = cp;
 
   assert(caml_jit_pending_capacity == 0 || caml_jit_pending_buffer != NULL);
   assert(caml_jit_pending_buffer == NULL || caml_jit_pending_capacity > 0);
@@ -1486,7 +1600,7 @@ static void *caml_jit_compile(code_t pc)
   assert(caml_jit_pending_size == 0);
   assert(sp == 0);
 
-  return addr;
+  return start;
 }
 
 
@@ -1508,10 +1622,11 @@ void caml_prepare_bytecode(code_t prog, asize_t prog_size)
       segment = *segmentp;
       if (segment == NULL) {
         /* we have a new code segment here */
-        segment = (caml_jit_segment_t *) malloc(sizeof(*segment));
+        segment = (caml_jit_segment_t *) calloc(1, sizeof(caml_jit_segment_t));
+        if (CAML_JIT_GNUC_UNLIKELY (segment == NULL))
+          caml_fatal_error("Fatal error: Unable to alloc new byte-code segment!\n");
         segment->segment_prog = prog;
         segment->segment_pend = pend;
-        segment->segment_next = NULL;
         *segmentp = segment;
         break;
       }
@@ -1529,6 +1644,8 @@ void caml_prepare_bytecode(code_t prog, asize_t prog_size)
 
 void caml_release_bytecode(code_t prog, asize_t prog_size)
 {
+  caml_jit_chunk_t    *chunk;
+  caml_jit_chunk_t    *cnext;
   caml_jit_segment_t  *segment;
   caml_jit_segment_t **segmentp;
   code_t               pend;
@@ -1545,6 +1662,14 @@ void caml_release_bytecode(code_t prog, asize_t prog_size)
       segment = *segmentp;
       assert(segment != NULL);
       if (segment->segment_prog == prog && segment->segment_pend == pend) {
+        /* release the code chunks */
+        for (chunk = segment->segment_chunks; chunk != NULL; chunk = cnext) {
+          cnext = chunk->chunk_next;
+          caml_jit_chunk_clear(chunk);
+          chunk->chunk_next = caml_jit_chunk_free;
+          caml_jit_chunk_free = chunk;
+        }
+
         /* drop the segment from the list */
         *segmentp = segment->segment_next;
         free(segment);

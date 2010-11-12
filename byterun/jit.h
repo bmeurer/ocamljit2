@@ -74,7 +74,10 @@
 
 
 /* maximum native code size */
-#define CAML_JIT_CODE_SIZE (128 * 1024 * 1024)
+#define CAML_JIT_CODE_SIZE (256 * 1024 * 1024)
+
+/* code reserve during generation (difference between current and limit) */
+#define CAML_JIT_CODE_RESERVE (20 * 15 + 5)
 
 
 //
@@ -85,9 +88,17 @@ CAML_JIT_INTERNAL void caml_jit_init();
 
 CAML_JIT_INTERNAL unsigned char *caml_jit_code_base;
 CAML_JIT_INTERNAL unsigned char *caml_jit_code_end;
-CAML_JIT_INTERNAL unsigned char *caml_jit_code_ptr;
 CAML_JIT_INTERNAL opcode_t       caml_jit_callback_return;
 CAML_JIT_INTERNAL unsigned       caml_jit_enabled;
+
+#define CAML_JIT_CHUNK_SIZE (256 * 1024)
+#define CAML_JIT_CHUNK_END(chunk) ((unsigned char *) (chunk) + CAML_JIT_CHUNK_SIZE)
+typedef struct caml_jit_chunk_t caml_jit_chunk_t;
+struct caml_jit_chunk_t
+{
+  caml_jit_chunk_t *chunk_next;
+  unsigned char     chunk_data[1];
+};
 
 /* Caml byte-code segments */
 typedef struct caml_jit_segment_t caml_jit_segment_t;
@@ -96,6 +107,9 @@ struct caml_jit_segment_t
   code_t              segment_prog;
   code_t              segment_pend;
   caml_jit_segment_t *segment_next;
+  caml_jit_chunk_t   *segment_chunks;
+  unsigned char      *segment_current;
+  unsigned char      *segment_limit;
 };
 
 #else

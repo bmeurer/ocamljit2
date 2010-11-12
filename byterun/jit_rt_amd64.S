@@ -181,18 +181,18 @@ FUNCTION(G(caml_jit_rt_alloc3))
 
         /* caml_jit_rt_allocN:
 	 *
-	 * Allocates a block of bhsize %r10 in the minor heap.
+	 * Allocates a block of bhsize %rdx in the minor heap.
 	 * Upon return %r15 points to the header of the newly
 	 * allocated block.
 	 */
 .Lcaml_jit_rt_allocN_gc:        
-        pushq   %r10                    /* preserve desired size */
-        addq    %r10, %r15
+        pushq   %rdx                    /* preserve desired size */
+        addq    %rdx, %r15
         call    .Lcaml_jit_rt_call_gc
-        popq    %r10                    /* recover desired size */
+        popq    %rdx                    /* recover desired size */
 FUNCTION(G(caml_jit_rt_allocN))
 .Lcaml_jit_rt_allocN:
-        subq    %r10, %r15
+        subq    %rdx, %r15
         CMP_VAR(caml_young_limit, %r15)
         jb      .Lcaml_jit_rt_allocN_gc
         ret
@@ -317,7 +317,7 @@ FUNCTION(G(caml_jit_rt_makeblock3))
 	 */
 FUNCTION(G(caml_jit_rt_makeblockN))
     /* Allocate space in the minor heap */
-        leaq    8(, %rdi, 8), %r10
+        leaq    8(, %rdi, 8), %rdx
         call    .Lcaml_jit_rt_allocN
     /* Calculate the number of stack arguments */
         leaq    -1(%rdi), %rcx
@@ -457,7 +457,7 @@ FUNCTION(G(caml_jit_rt_grab_closure_and_return))
         shrq    $1, %r13
         addq    $3, %r13
     /* Allocate space in the minor heap */
-        leaq    8(, %r13, 8), %r10
+        leaq    8(, %r13, 8), %rdx
         call    .Lcaml_jit_rt_allocN
     /* Setup for initialization below */
         leaq    -2(%r13), %rcx

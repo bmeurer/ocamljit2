@@ -713,7 +713,7 @@ static void *caml_jit_compile(code_t pc)
       jx86_jae8_forward(cp);
 
       /* generate a restart closure and return to caller */
-      jx86_movq_reg_imm(cp, JX86_RAX, pc - 3);
+      jx86_movn_reg_imm(cp, JX86_NAX, pc - 3);
       jx86_jmp(cp, &caml_jit_rt_grab_closure_and_return);
 
       /* calculate remaining extra arguments */
@@ -772,7 +772,7 @@ static void *caml_jit_compile(code_t pc)
         break;
 
       default:
-        jx86_movq_reg_imm(cp, JX86_R10, Bhsize_wosize(wosize));
+        jx86_movn_reg_imm(cp, JX86_NDX, Bhsize_wosize(wosize));
         addr = &caml_jit_rt_allocN;
         break;
       }

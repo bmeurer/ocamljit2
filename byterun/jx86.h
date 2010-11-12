@@ -789,20 +789,14 @@ typedef enum
  */
 
 #define jx86_cwd(cp)                            \
-  do {                                          \
-    jx86_emit_uint16((cp), 0x9966);             \
-  } while (0)
+  jx86_emit_uint16((cp), 0x9966);
 
 #define jx86_cdq(cp)                            \
-  do {                                          \
-    jx86_emit_uint8((cp), 0x99);                \
-  } while (0)
+  jx86_emit_uint8((cp), 0x99);
 
 #ifdef JX86_64
 # define jx86_cqo(cp)                           \
-  do {                                          \
-    jx86_emit_uint16((cp), 0x9948);             \
-  } while (0)
+  jx86_emit_uint16((cp), 0x9948);
 #endif
 
 

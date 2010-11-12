@@ -324,12 +324,15 @@ static void caml_jit_segment_alloc_chunk(caml_jit_segment_t *segment)
   caml_jit_chunk_t *chunk;
 
   assert(segment != NULL);
+  assert(((size_t) segment->segment_current % sizeof(void *)) == 0);
 
   chunk = caml_jit_chunk_alloc();
   chunk->chunk_next = segment->segment_chunks;
   segment->segment_chunks = chunk;
   segment->segment_current = chunk->chunk_data;
   segment->segment_limit = CAML_JIT_CHUNK_END(chunk) - CAML_JIT_CODE_RESERVE;
+
+  assert(((size_t) segment->segment_current % sizeof(void *)) == 0);
 }
 
 
@@ -339,9 +342,12 @@ static unsigned char *caml_jit_segment_continue(caml_jit_segment_t *segment, uns
   assert(cp >= segment->segment_current);
   assert(segment->segment_chunks != NULL);
   assert(cp < CAML_JIT_CHUNK_END(segment->segment_chunks) - 5);
+  assert(((size_t) segment->segment_current % sizeof(void *)) == 0);
 
   caml_jit_segment_alloc_chunk(segment);
   jx86_jmp(cp, segment->segment_current);
+
+  assert(((size_t) segment->segment_current % sizeof(void *)) == 0);
 
   return segment->segment_current;
 }
@@ -366,18 +372,20 @@ static void *caml_jit_compile(code_t pc)
   assert(caml_jit_pending_buffer == NULL || caml_jit_pending_capacity > 0);
   assert(caml_jit_pending_capacity == 0 || caml_jit_pending_buffer != NULL);
 
+  /* lookup the byte-code segment for the pc */
   for (segment = caml_jit_segment_head;; segment = segment->segment_next) {
     assert(segment != NULL);
-    if (segment->segment_prog <= pc && pc < segment->segment_pend) {
-      /* make sure that reasonable space is available for this segment */
-      if (CAML_JIT_GNUC_UNLIKELY (segment->segment_current >= segment->segment_limit))
-        caml_jit_segment_alloc_chunk(segment);
+    if (segment->segment_prog <= pc && pc < segment->segment_pend)
       break;
-    }
   }
+
+  /* make sure that reasonable space is available for this segment */
+  if (CAML_JIT_GNUC_UNLIKELY (segment->segment_current >= segment->segment_limit))
+    caml_jit_segment_alloc_chunk(segment);
 
   assert(segment != NULL);
   assert(segment->segment_current != NULL);
+  assert(((size_t) segment->segment_current % sizeof(void *)) == 0);
 
   /* setup the native start address */
   cp = start = segment->segment_current;
@@ -1592,7 +1600,8 @@ static void *caml_jit_compile(code_t pc)
     }
   }
 
-  segment->segment_current = cp;
+  /* enforce proper alignment for segment code pointer */
+  segment->segment_current = (unsigned char *) (((size_t) cp + (sizeof(void *) - 1)) & ~(sizeof(void *) - 1));
 
   assert(caml_jit_pending_capacity == 0 || caml_jit_pending_buffer != NULL);
   assert(caml_jit_pending_buffer == NULL || caml_jit_pending_capacity > 0);

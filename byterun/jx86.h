@@ -17,15 +17,15 @@
 #ifndef CAML_JX86_H
 #define CAML_JX86_H
 
+#if defined(TARGET_amd64) || defined(TARGET_i386)
+
 /* X86-32/64 architecture detection
  * --------------------------------
  */
-#if defined(__x86_64__) || defined(__amd64__)
+#ifdef TARGET_amd64
 # define JX86_64
-#elif defined(__i386__)
-# define JX86_32
 #else
-# error "Unsupported architecture"
+# define JX86_32
 #endif
 
 
@@ -51,6 +51,8 @@ typedef jx86_uint64_t jx86_uintptr_t;
 typedef jx86_int32_t  jx86_intptr_t;
 typedef jx86_uint32_t jx86_uintptr_t;
 #endif
+/* native word size */
+#define JX86_NWS (sizeof(jx86_intptr_t))
 
 
 /* Assertions
@@ -126,6 +128,16 @@ typedef enum
   JX86_R14 = 14,
   JX86_R15 = 15,
 #endif /* JX86_64 */
+
+  /* native register names */
+  JX86_NAX  =  0,
+  JX86_NCX  =  1,
+  JX86_NDX  =  2,
+  JX86_NBX  =  3,
+  JX86_NSP  =  4,
+  JX86_NBP  =  5,
+  JX86_NSI  =  6,
+  JX86_NDI  =  7,
 } jx86_reg_t;
 
 #ifdef JX86_64
@@ -276,7 +288,7 @@ typedef enum
       jx86_emit_int16((cp), (imm));             \
       break;                                    \
     case 8:                                     \
-      jx86_assert(sizeof(void *) == 8);         \
+      jx86_assert(JX86_NWS == 8);               \
     case 4:                                     \
       jx86_emit_int32((cp), (imm));             \
       break;                                    \
@@ -508,6 +520,11 @@ typedef enum
 # define jx86_addq_reg_membase(cp, dreg, breg, disp) jx86_alu_reg_membase((cp), JX86_ADD, (dreg), (breg), (disp), 8)
 # define jx86_addq_reg_reg(cp, dreg, sreg)           jx86_alu_reg_reg((cp), JX86_ADD, (dreg), (sreg), 8)
 #endif /* JX86_64 */
+#define jx86_addn_membase_imm(cp, breg, disp, simm)  jx86_alu_membase_imm((cp), JX86_ADD, (breg), (disp), (simm), JX86_NWS)
+#define jx86_addn_membase_reg(cp, breg, disp, sreg)  jx86_alu_membase_reg((cp), JX86_ADD, (breg), (disp), (sreg), JX86_NWS)
+#define jx86_addn_reg_imm(cp, dreg, simm)            jx86_alu_reg_imm((cp), JX86_ADD, (dreg), (simm), JX86_NWS)
+#define jx86_addn_reg_membase(cp, dreg, breg, disp)  jx86_alu_reg_membase((cp), JX86_ADD, (dreg), (breg), (disp), JX86_NWS)
+#define jx86_addn_reg_reg(cp, dreg, sreg)            jx86_alu_reg_reg((cp), JX86_ADD, (dreg), (sreg), JX86_NWS)
 
 #define jx86_orb_membase_imm(cp, breg, disp, simm)  jx86_alu_membase_imm((cp), JX86_OR, (breg), (disp), (simm), 1)
 #define jx86_orb_membase_reg(cp, breg, disp, sreg)  jx86_alu_membase_reg((cp), JX86_OR, (breg), (disp), (sreg), 1)
@@ -531,6 +548,11 @@ typedef enum
 # define jx86_orq_reg_membase(cp, dreg, breg, disp) jx86_alu_reg_membase((cp), JX86_OR, (dreg), (breg), (disp), 8)
 # define jx86_orq_reg_reg(cp, dreg, sreg)           jx86_alu_reg_reg((cp), JX86_OR, (dreg), (sreg), 8)
 #endif /* JX86_64 */
+#define jx86_orn_membase_imm(cp, breg, disp, simm)  jx86_alu_membase_imm((cp), JX86_OR, (breg), (disp), (simm), JX86_NWS)
+#define jx86_orn_membase_reg(cp, breg, disp, sreg)  jx86_alu_membase_reg((cp), JX86_OR, (breg), (disp), (sreg), JX86_NWS)
+#define jx86_orn_reg_imm(cp, dreg, simm)            jx86_alu_reg_imm((cp), JX86_OR, (dreg), (simm), JX86_NWS)
+#define jx86_orn_reg_membase(cp, dreg, breg, disp)  jx86_alu_reg_membase((cp), JX86_OR, (dreg), (breg), (disp), JX86_NWS)
+#define jx86_orn_reg_reg(cp, dreg, sreg)            jx86_alu_reg_reg((cp), JX86_OR, (dreg), (sreg), JX86_NWS)
 
 #define jx86_adcb_membase_imm(cp, breg, disp, simm)  jx86_alu_membase_imm((cp), JX86_ADC, (breg), (disp), (simm), 1)
 #define jx86_adcb_membase_reg(cp, breg, disp, sreg)  jx86_alu_membase_reg((cp), JX86_ADC, (breg), (disp), (sreg), 1)
@@ -554,6 +576,11 @@ typedef enum
 # define jx86_adcq_reg_membase(cp, dreg, breg, disp) jx86_alu_reg_membase((cp), JX86_ADC, (dreg), (breg), (disp), 8)
 # define jx86_adcq_reg_reg(cp, dreg, sreg)           jx86_alu_reg_reg((cp), JX86_ADC, (dreg), (sreg), 8)
 #endif /* JX86_64 */
+#define jx86_adcn_membase_imm(cp, breg, disp, simm)  jx86_alu_membase_imm((cp), JX86_ADC, (breg), (disp), (simm), JX86_NWS)
+#define jx86_adcn_membase_reg(cp, breg, disp, sreg)  jx86_alu_membase_reg((cp), JX86_ADC, (breg), (disp), (sreg), JX86_NWS)
+#define jx86_adcn_reg_imm(cp, dreg, simm)            jx86_alu_reg_imm((cp), JX86_ADC, (dreg), (simm), JX86_NWS)
+#define jx86_adcn_reg_membase(cp, dreg, breg, disp)  jx86_alu_reg_membase((cp), JX86_ADC, (dreg), (breg), (disp), JX86_NWS)
+#define jx86_adcn_reg_reg(cp, dreg, sreg)            jx86_alu_reg_reg((cp), JX86_ADC, (dreg), (sreg), JX86_NWS)
 
 #define jx86_sbbb_membase_imm(cp, breg, disp, simm)  jx86_alu_membase_imm((cp), JX86_SBB, (breg), (disp), (simm), 1)
 #define jx86_sbbb_membase_reg(cp, breg, disp, sreg)  jx86_alu_membase_reg((cp), JX86_SBB, (breg), (disp), (sreg), 1)
@@ -577,6 +604,11 @@ typedef enum
 # define jx86_sbbq_reg_membase(cp, dreg, breg, disp) jx86_alu_reg_membase((cp), JX86_SBB, (dreg), (breg), (disp), 8)
 # define jx86_sbbq_reg_reg(cp, dreg, sreg)           jx86_alu_reg_reg((cp), JX86_SBB, (dreg), (sreg), 8)
 #endif /* JX86_64 */
+#define jx86_sbbn_membase_imm(cp, breg, disp, simm)  jx86_alu_membase_imm((cp), JX86_SBB, (breg), (disp), (simm), JX86_NWS)
+#define jx86_sbbn_membase_reg(cp, breg, disp, sreg)  jx86_alu_membase_reg((cp), JX86_SBB, (breg), (disp), (sreg), JX86_NWS)
+#define jx86_sbbn_reg_imm(cp, dreg, simm)            jx86_alu_reg_imm((cp), JX86_SBB, (dreg), (simm), JX86_NWS)
+#define jx86_sbbn_reg_membase(cp, dreg, breg, disp)  jx86_alu_reg_membase((cp), JX86_SBB, (dreg), (breg), (disp), JX86_NWS)
+#define jx86_sbbn_reg_reg(cp, dreg, sreg)            jx86_alu_reg_reg((cp), JX86_SBB, (dreg), (sreg), JX86_NWS)
 
 #define jx86_andb_membase_imm(cp, breg, disp, simm)  jx86_alu_membase_imm((cp), JX86_AND, (breg), (disp), (simm), 1)
 #define jx86_andb_membase_reg(cp, breg, disp, sreg)  jx86_alu_membase_reg((cp), JX86_AND, (breg), (disp), (sreg), 1)
@@ -600,6 +632,11 @@ typedef enum
 # define jx86_andq_reg_membase(cp, dreg, breg, disp) jx86_alu_reg_membase((cp), JX86_AND, (dreg), (breg), (disp), 8)
 # define jx86_andq_reg_reg(cp, dreg, sreg)           jx86_alu_reg_reg((cp), JX86_AND, (dreg), (sreg), 8)
 #endif /* JX86_64 */
+#define jx86_andn_membase_imm(cp, breg, disp, simm)  jx86_alu_membase_imm((cp), JX86_AND, (breg), (disp), (simm), JX86_NWS)
+#define jx86_andn_membase_reg(cp, breg, disp, sreg)  jx86_alu_membase_reg((cp), JX86_AND, (breg), (disp), (sreg), JX86_NWS)
+#define jx86_andn_reg_imm(cp, dreg, simm)            jx86_alu_reg_imm((cp), JX86_AND, (dreg), (simm), JX86_NWS)
+#define jx86_andn_reg_membase(cp, dreg, breg, disp)  jx86_alu_reg_membase((cp), JX86_AND, (dreg), (breg), (disp), JX86_NWS)
+#define jx86_andn_reg_reg(cp, dreg, sreg)            jx86_alu_reg_reg((cp), JX86_AND, (dreg), (sreg), JX86_NWS)
 
 #define jx86_subb_membase_imm(cp, breg, disp, simm)  jx86_alu_membase_imm((cp), JX86_SUB, (breg), (disp), (simm), 1)
 #define jx86_subb_membase_reg(cp, breg, disp, sreg)  jx86_alu_membase_reg((cp), JX86_SUB, (breg), (disp), (sreg), 1)
@@ -623,6 +660,11 @@ typedef enum
 # define jx86_subq_reg_membase(cp, dreg, breg, disp) jx86_alu_reg_membase((cp), JX86_SUB, (dreg), (breg), (disp), 8)
 # define jx86_subq_reg_reg(cp, dreg, sreg)           jx86_alu_reg_reg((cp), JX86_SUB, (dreg), (sreg), 8)
 #endif /* JX86_64 */
+#define jx86_subn_membase_imm(cp, breg, disp, simm)  jx86_alu_membase_imm((cp), JX86_SUB, (breg), (disp), (simm), JX86_NWS)
+#define jx86_subn_membase_reg(cp, breg, disp, sreg)  jx86_alu_membase_reg((cp), JX86_SUB, (breg), (disp), (sreg), JX86_NWS)
+#define jx86_subn_reg_imm(cp, dreg, simm)            jx86_alu_reg_imm((cp), JX86_SUB, (dreg), (simm), JX86_NWS)
+#define jx86_subn_reg_membase(cp, dreg, breg, disp)  jx86_alu_reg_membase((cp), JX86_SUB, (dreg), (breg), (disp), JX86_NWS)
+#define jx86_subn_reg_reg(cp, dreg, sreg)            jx86_alu_reg_reg((cp), JX86_SUB, (dreg), (sreg), JX86_NWS)
 
 #define jx86_xorb_membase_imm(cp, breg, disp, simm)  jx86_alu_membase_imm((cp), JX86_XOR, (breg), (disp), (simm), 1)
 #define jx86_xorb_membase_reg(cp, breg, disp, sreg)  jx86_alu_membase_reg((cp), JX86_XOR, (breg), (disp), (sreg), 1)
@@ -646,6 +688,11 @@ typedef enum
 # define jx86_xorq_reg_membase(cp, dreg, breg, disp) jx86_alu_reg_membase((cp), JX86_XOR, (dreg), (breg), (disp), 8)
 # define jx86_xorq_reg_reg(cp, dreg, sreg)           jx86_alu_reg_reg((cp), JX86_XOR, (dreg), (sreg), 8)
 #endif /* JX86_64 */
+#define jx86_xorn_membase_imm(cp, breg, disp, simm)  jx86_alu_membase_imm((cp), JX86_XOR, (breg), (disp), (simm), JX86_NWS)
+#define jx86_xorn_membase_reg(cp, breg, disp, sreg)  jx86_alu_membase_reg((cp), JX86_XOR, (breg), (disp), (sreg), JX86_NWS)
+#define jx86_xorn_reg_imm(cp, dreg, simm)            jx86_alu_reg_imm((cp), JX86_XOR, (dreg), (simm), JX86_NWS)
+#define jx86_xorn_reg_membase(cp, dreg, breg, disp)  jx86_alu_reg_membase((cp), JX86_XOR, (dreg), (breg), (disp), JX86_NWS)
+#define jx86_xorn_reg_reg(cp, dreg, sreg)            jx86_alu_reg_reg((cp), JX86_XOR, (dreg), (sreg), JX86_NWS)
 
 #define jx86_cmpb_membase_imm(cp, breg, disp, simm)  jx86_alu_membase_imm((cp), JX86_CMP, (breg), (disp), (simm), 1)
 #define jx86_cmpb_membase_reg(cp, breg, disp, sreg)  jx86_alu_membase_reg((cp), JX86_CMP, (breg), (disp), (sreg), 1)
@@ -669,6 +716,11 @@ typedef enum
 # define jx86_cmpq_reg_membase(cp, dreg, breg, disp) jx86_alu_reg_membase((cp), JX86_CMP, (dreg), (breg), (disp), 8)
 # define jx86_cmpq_reg_reg(cp, dreg, sreg)           jx86_alu_reg_reg((cp), JX86_CMP, (dreg), (sreg), 8)
 #endif /* JX86_64 */
+#define jx86_cmpn_membase_imm(cp, breg, disp, simm)  jx86_alu_membase_imm((cp), JX86_CMP, (breg), (disp), (simm), JX86_NWS)
+#define jx86_cmpn_membase_reg(cp, breg, disp, sreg)  jx86_alu_membase_reg((cp), JX86_CMP, (breg), (disp), (sreg), JX86_NWS)
+#define jx86_cmpn_reg_imm(cp, dreg, simm)            jx86_alu_reg_imm((cp), JX86_CMP, (dreg), (simm), JX86_NWS)
+#define jx86_cmpn_reg_membase(cp, dreg, breg, disp)  jx86_alu_reg_membase((cp), JX86_CMP, (dreg), (breg), (disp), JX86_NWS)
+#define jx86_cmpn_reg_reg(cp, dreg, sreg)            jx86_alu_reg_reg((cp), JX86_CMP, (dreg), (sreg), JX86_NWS)
 
 
 /* CALL instruction
@@ -720,6 +772,8 @@ typedef enum
 # define jx86_callq_membase(cp, breg, disp) jx86_call_membase((cp), (breg), (disp), 8)
 # define jx86_callq_reg(cp, reg)            jx86_call_reg((cp), (reg), 8)
 #endif /* JX86_32 */
+#define jx86_calln_membase(cp, breg, disp)  jx86_call_membase((cp), (breg), (disp), JX86_NWS)
+#define jx86_calln_reg(cp, reg)             jx86_call_reg((cp), (reg), JX86_NWS)
 
 
 /* CLD/STD instructions
@@ -785,6 +839,8 @@ typedef enum
 # define jx86_idivq_membase(cp, breg, disp) jx86_idiv_membase((cp), (breg), (disp), 8)
 # define jx86_idivq_reg(cp, sreg)           jx86_idiv_reg((cp), (sreg), 8)
 #endif
+#define jx86_idivn_membase(cp, breg, disp)  jx86_idiv_membase((cp), (breg), (disp), JX86_NWS)
+#define jx86_idivn_reg(cp, sreg)            jx86_idiv_reg((cp), (sreg), JX86_NWS)
 
 
 /* IMUL instruction
@@ -847,6 +903,10 @@ typedef enum
 # define jx86_imulq_reg_membase(cp, dreg, breg, disp) jx86_imul_reg_membase((cp), (dreg), (breg), (disp), 8)
 # define jx86_imulq_reg_reg(cp, dreg, sreg)           jx86_imul_reg_reg((cp), (dreg), (sreg), 8)
 #endif /* JX86_64 */
+#define jx86_imuln_membase(cp, breg, disp)            jx86_imul_membase((cp), (breg), (disp), JX86_NWS)
+#define jx86_imuln_reg(cp, sreg)                      jx86_imul_reg((cp), (sreg), JX86_NWS)
+#define jx86_imuln_reg_membase(cp, dreg, breg, disp)  jx86_imul_reg_membase((cp), (dreg), (breg), (disp), JX86_NWS)
+#define jx86_imuln_reg_reg(cp, dreg, sreg)            jx86_imul_reg_reg((cp), (dreg), (sreg), JX86_NWS)
 
 
 /* Jcc instructions
@@ -1178,6 +1238,9 @@ typedef JX86_DECLARE_ENUM_CC(J, 0x70U) jx86_jcc_t;
 # define jx86_jmpq_memindex(cp, breg, disp, ireg, shift) jx86_jmp_memindex((cp), (breg), (disp), (ireg), (shift), 8)
 # define jx86_jmpq_reg(cp, reg)                          jx86_jmp_reg((cp), (reg), 8)
 #endif
+#define jx86_jmpn_membase(cp, breg, disp)                jx86_jmp_membase((cp), (breg), (disp), JX86_NWS)
+#define jx86_jmpn_memindex(cp, breg, disp, ireg, shift)  jx86_jmp_memindex((cp), (breg), (disp), (ireg), (shift), JX86_NWS)
+#define jx86_jmpn_reg(cp, reg)                           jx86_jmp_reg((cp), (reg), JX86_NWS)
 
 
 /* LEA instruction
@@ -1236,6 +1299,8 @@ typedef JX86_DECLARE_ENUM_CC(J, 0x70U) jx86_jcc_t;
 # define jx86_leaq_reg_membase(cp, dreg, breg, disp)                jx86_lea_reg_membase((cp), (dreg), (breg), (disp), 8)
 # define jx86_leaq_reg_memindex(cp, dreg, breg, disp, ireg, shift)  jx86_lea_reg_memindex((cp), (dreg), (breg), (disp), (ireg), (shift), 8)
 #endif
+#define jx86_lean_reg_membase(cp, dreg, breg, disp)                 jx86_lea_reg_membase((cp), (dreg), (breg), (disp), JX86_NWS)
+#define jx86_lean_reg_memindex(cp, dreg, breg, disp, ireg, shift)   jx86_lea_reg_memindex((cp), (dreg), (breg), (disp), (ireg), (shift), JX86_NWS)
 
 
 /* MOV instruction
@@ -1392,6 +1457,14 @@ typedef JX86_DECLARE_ENUM_CC(J, 0x70U) jx86_jcc_t;
 # define jx86_movq_reg_memindex(cp, dreg, breg, disp, ireg, shift) jx86_mov_reg_memindex((cp), (dreg), (breg), (disp), (ireg), (shift), 8)
 # define jx86_movq_reg_reg(cp, dreg, sreg)                         jx86_mov_reg_reg((cp), (dreg), (sreg), 8)
 #endif /* JX86_64 */
+#define jx86_movn_membase_imm(cp, breg, disp, simm)                jx86_mov_membase_imm((cp), (breg), (disp), (simm), JX86_NWS)
+#define jx86_movn_membase_reg(cp, breg, disp, sreg)                jx86_mov_membase_reg((cp), (breg), (disp), (sreg), JX86_NWS)
+#define jx86_movn_memindex_imm(cp, breg, disp, ireg, shift, simm)  jx86_mov_memindex_imm((cp), (breg), (disp), (ireg), (shift), (simm), JX86_NWS)
+#define jx86_movn_memindex_reg(cp, breg, disp, ireg, shift, sreg)  jx86_mov_memindex_reg((cp), (breg), (disp), (ireg), (shift), (sreg), JX86_NWS)
+#define jx86_movn_reg_imm(cp, dreg, simm)                          jx86_mov_reg_imm((cp), (dreg), (simm), JX86_NWS)
+#define jx86_movn_reg_membase(cp, dreg, breg, disp)                jx86_mov_reg_membase((cp), (dreg), (breg), (disp), JX86_NWS)
+#define jx86_movn_reg_memindex(cp, dreg, breg, disp, ireg, shift)  jx86_mov_reg_memindex((cp), (dreg), (breg), (disp), (ireg), (shift), JX86_NWS)
+#define jx86_movn_reg_reg(cp, dreg, sreg)                          jx86_mov_reg_reg((cp), (dreg), (sreg), JX86_NWS)
 
 
 /* MOVZX instruction
@@ -1439,6 +1512,7 @@ typedef JX86_DECLARE_ENUM_CC(J, 0x70U) jx86_jcc_t;
 #ifdef JX86_64
 # define jx86_negq_reg(cp, reg) jx86_neg_reg((cp), (reg), 8)
 #endif /* JX86_64 */
+#define jx86_negn_reg(cp, reg)  jx86_neg_reg((cp), (reg), JX86_NWS)
 
 
 /* POP instruction
@@ -1474,6 +1548,8 @@ typedef JX86_DECLARE_ENUM_CC(J, 0x70U) jx86_jcc_t;
 # define jx86_popq_membase(cp, breg, disp) jx86_pop_membase((cp), (breg), (disp), 8)
 # define jx86_popq_reg(cp, dreg)           jx86_pop_reg((cp), (dreg), 8)
 #endif /* !JX86_64 */
+#define jx86_popn_membase(cp, breg, disp)  jx86_pop_membase((cp), (breg), (disp), JX86_NWS)
+#define jx86_popn_reg(cp, dreg)            jx86_pop_reg((cp), (dreg), JX86_NWS)
 
 
 /* PUSH instruction
@@ -1509,6 +1585,8 @@ typedef JX86_DECLARE_ENUM_CC(J, 0x70U) jx86_jcc_t;
 # define jx86_pushq_membase(cp, breg, disp) jx86_push_membase((cp), (breg), (disp), 8)
 # define jx86_pushq_reg(cp, sreg)           jx86_push_reg((cp), (sreg), 8)
 #endif /* !JX86_64 */
+#define jx86_pushn_membase(cp, breg, disp)  jx86_push_membase((cp), (breg), (disp), JX86_NWS)
+#define jx86_pushn_reg(cp, sreg)            jx86_push_reg((cp), (sreg), JX86_NWS)
 
 
 /* RET instruction
@@ -1692,6 +1770,10 @@ typedef enum
 # define jx86_shfq_reg_imm(cp, shf, dreg, simm)           jx86_shf_reg_imm((cp), (shf), (dreg), (simm), 8)
 # define jx86_shfq_reg_reg(cp, shf, dreg, sreg)           jx86_shf_reg_reg((cp), (shf), (dreg), (sreg), 8)
 #endif /* JX86_64 */
+#define jx86_shfn_membase_imm(cp, shf, breg, disp, simm)  jx86_shf_membase_imm((cp), (shf), (breg), (disp), (simm), JX86_NWS)
+#define jx86_shfn_membase_reg(cp, shf, breg, disp, simm)  jx86_shf_membase_reg((cp), (shf), (breg), (disp), (sreg), JX86_NWS)
+#define jx86_shfn_reg_imm(cp, shf, dreg, simm)            jx86_shf_reg_imm((cp), (shf), (dreg), (simm), JX86_NWS)
+#define jx86_shfn_reg_reg(cp, shf, dreg, sreg)            jx86_shf_reg_reg((cp), (shf), (dreg), (sreg), JX86_NWS)
 
 #define jx86_rolb_membase_imm(cp, breg, disp, simm)  jx86_shf_membase_imm((cp), JX86_ROL, (breg), (disp), (simm), 1)
 #define jx86_rolb_membase_reg(cp, breg, disp, sreg)  jx86_shf_membase_reg((cp), JX86_ROL, (breg), (disp), (sreg), 1)
@@ -1711,6 +1793,10 @@ typedef enum
 # define jx86_rolq_reg_imm(cp, dreg, simm)           jx86_shf_reg_imm((cp), JX86_ROL, (dreg), (simm), 8)
 # define jx86_rolq_reg_reg(cp, dreg, sreg)           jx86_shf_reg_reg((cp), JX86_ROL, (dreg), (sreg), 8)
 #endif /* JX86_64 */
+#define jx86_roln_membase_imm(cp, breg, disp, simm)  jx86_shf_membase_imm((cp), JX86_ROL, (breg), (disp), (simm), JX86_NWS)
+#define jx86_roln_membase_reg(cp, breg, disp, sreg)  jx86_shf_membase_reg((cp), JX86_ROL, (breg), (disp), (sreg), JX86_NWS)
+#define jx86_roln_reg_imm(cp, dreg, simm)            jx86_shf_reg_imm((cp), JX86_ROL, (dreg), (simm), JX86_NWS)
+#define jx86_roln_reg_reg(cp, dreg, sreg)            jx86_shf_reg_reg((cp), JX86_ROL, (dreg), (sreg), JX86_NWS)
 
 #define jx86_rorb_membase_imm(cp, breg, disp, simm)  jx86_shf_membase_imm((cp), JX86_ROR, (breg), (disp), (simm), 1)
 #define jx86_rorb_membase_reg(cp, breg, disp, sreg)  jx86_shf_membase_reg((cp), JX86_ROR, (breg), (disp), (sreg), 1)
@@ -1730,6 +1816,10 @@ typedef enum
 # define jx86_rorq_reg_imm(cp, dreg, simm)           jx86_shf_reg_imm((cp), JX86_ROR, (dreg), (simm), 8)
 # define jx86_rorq_reg_reg(cp, dreg, sreg)           jx86_shf_reg_reg((cp), JX86_ROR, (dreg), (sreg), 8)
 #endif /* JX86_64 */
+#define jx86_rorn_membase_imm(cp, breg, disp, simm)  jx86_shf_membase_imm((cp), JX86_ROR, (breg), (disp), (simm), JX86_NWS)
+#define jx86_rorn_membase_reg(cp, breg, disp, sreg)  jx86_shf_membase_reg((cp), JX86_ROR, (breg), (disp), (sreg), JX86_NWS)
+#define jx86_rorn_reg_imm(cp, dreg, simm)            jx86_shf_reg_imm((cp), JX86_ROR, (dreg), (simm), JX86_NWS)
+#define jx86_rorn_reg_reg(cp, dreg, sreg)            jx86_shf_reg_reg((cp), JX86_ROR, (dreg), (sreg), JX86_NWS)
 
 #define jx86_rclb_membase_imm(cp, breg, disp, simm)  jx86_shf_membase_imm((cp), JX86_RCL, (breg), (disp), (simm), 1)
 #define jx86_rclb_membase_reg(cp, breg, disp, sreg)  jx86_shf_membase_reg((cp), JX86_RCL, (breg), (disp), (sreg), 1)
@@ -1749,6 +1839,10 @@ typedef enum
 # define jx86_rclq_reg_imm(cp, dreg, simm)           jx86_shf_reg_imm((cp), JX86_RCL, (dreg), (simm), 8)
 # define jx86_rclq_reg_reg(cp, dreg, sreg)           jx86_shf_reg_reg((cp), JX86_RCL, (dreg), (sreg), 8)
 #endif /* JX86_64 */
+#define jx86_rcln_membase_imm(cp, breg, disp, simm)  jx86_shf_membase_imm((cp), JX86_RCL, (breg), (disp), (simm), JX86_NWS)
+#define jx86_rcln_membase_reg(cp, breg, disp, sreg)  jx86_shf_membase_reg((cp), JX86_RCL, (breg), (disp), (sreg), JX86_NWS)
+#define jx86_rcln_reg_imm(cp, dreg, simm)            jx86_shf_reg_imm((cp), JX86_RCL, (dreg), (simm), JX86_NWS)
+#define jx86_rcln_reg_reg(cp, dreg, sreg)            jx86_shf_reg_reg((cp), JX86_RCL, (dreg), (sreg), JX86_NWS)
 
 #define jx86_rcrb_membase_imm(cp, breg, disp, simm)  jx86_shf_membase_imm((cp), JX86_RCR, (breg), (disp), (simm), 1)
 #define jx86_rcrb_membase_reg(cp, breg, disp, sreg)  jx86_shf_membase_reg((cp), JX86_RCR, (breg), (disp), (sreg), 1)
@@ -1768,6 +1862,10 @@ typedef enum
 # define jx86_rcrq_reg_imm(cp, dreg, simm)           jx86_shf_reg_imm((cp), JX86_RCR, (dreg), (simm), 8)
 # define jx86_rcrq_reg_reg(cp, dreg, sreg)           jx86_shf_reg_reg((cp), JX86_RCR, (dreg), (sreg), 8)
 #endif /* JX86_64 */
+#define jx86_rcrn_membase_imm(cp, breg, disp, simm)  jx86_shf_membase_imm((cp), JX86_RCR, (breg), (disp), (simm), JX86_NWS)
+#define jx86_rcrn_membase_reg(cp, breg, disp, sreg)  jx86_shf_membase_reg((cp), JX86_RCR, (breg), (disp), (sreg), JX86_NWS)
+#define jx86_rcrn_reg_imm(cp, dreg, simm)            jx86_shf_reg_imm((cp), JX86_RCR, (dreg), (simm), JX86_NWS)
+#define jx86_rcrn_reg_reg(cp, dreg, sreg)            jx86_shf_reg_reg((cp), JX86_RCR, (dreg), (sreg), JX86_NWS)
 
 #define jx86_shlb_membase_imm(cp, breg, disp, simm)  jx86_shf_membase_imm((cp), JX86_SHL, (breg), (disp), (simm), 1)
 #define jx86_shlb_membase_reg(cp, breg, disp, sreg)  jx86_shf_membase_reg((cp), JX86_SHL, (breg), (disp), (sreg), 1)
@@ -1787,6 +1885,10 @@ typedef enum
 # define jx86_shlq_reg_imm(cp, dreg, simm)           jx86_shf_reg_imm((cp), JX86_SHL, (dreg), (simm), 8)
 # define jx86_shlq_reg_reg(cp, dreg, sreg)           jx86_shf_reg_reg((cp), JX86_SHL, (dreg), (sreg), 8)
 #endif /* JX86_64 */
+#define jx86_shln_membase_imm(cp, breg, disp, simm)  jx86_shf_membase_imm((cp), JX86_SHL, (breg), (disp), (simm), JX86_NWS)
+#define jx86_shln_membase_reg(cp, breg, disp, sreg)  jx86_shf_membase_reg((cp), JX86_SHL, (breg), (disp), (sreg), JX86_NWS)
+#define jx86_shln_reg_imm(cp, dreg, simm)            jx86_shf_reg_imm((cp), JX86_SHL, (dreg), (simm), JX86_NWS)
+#define jx86_shln_reg_reg(cp, dreg, sreg)            jx86_shf_reg_reg((cp), JX86_SHL, (dreg), (sreg), JX86_NWS)
 
 #define jx86_shrb_membase_imm(cp, breg, disp, simm)  jx86_shf_membase_imm((cp), JX86_SHR, (breg), (disp), (simm), 1)
 #define jx86_shrb_membase_reg(cp, breg, disp, sreg)  jx86_shf_membase_reg((cp), JX86_SHR, (breg), (disp), (sreg), 1)
@@ -1806,6 +1908,10 @@ typedef enum
 # define jx86_shrq_reg_imm(cp, dreg, simm)           jx86_shf_reg_imm((cp), JX86_SHR, (dreg), (simm), 8)
 # define jx86_shrq_reg_reg(cp, dreg, sreg)           jx86_shf_reg_reg((cp), JX86_SHR, (dreg), (sreg), 8)
 #endif /* JX86_64 */
+#define jx86_shrn_membase_imm(cp, breg, disp, simm)  jx86_shf_membase_imm((cp), JX86_SHR, (breg), (disp), (simm), JX86_NWS)
+#define jx86_shrn_membase_reg(cp, breg, disp, sreg)  jx86_shf_membase_reg((cp), JX86_SHR, (breg), (disp), (sreg), JX86_NWS)
+#define jx86_shrn_reg_imm(cp, dreg, simm)            jx86_shf_reg_imm((cp), JX86_SHR, (dreg), (simm), JX86_NWS)
+#define jx86_shrn_reg_reg(cp, dreg, sreg)            jx86_shf_reg_reg((cp), JX86_SHR, (dreg), (sreg), JX86_NWS)
 
 #define jx86_sarb_membase_imm(cp, breg, disp, simm)  jx86_shf_membase_imm((cp), JX86_SAR, (breg), (disp), (simm), 1)
 #define jx86_sarb_membase_reg(cp, breg, disp, sreg)  jx86_shf_membase_reg((cp), JX86_SAR, (breg), (disp), (sreg), 1)
@@ -1825,6 +1931,10 @@ typedef enum
 # define jx86_sarq_reg_imm(cp, dreg, simm)           jx86_shf_reg_imm((cp), JX86_SAR, (dreg), (simm), 8)
 # define jx86_sarq_reg_reg(cp, dreg, sreg)           jx86_shf_reg_reg((cp), JX86_SAR, (dreg), (sreg), 8)
 #endif /* JX86_64 */
+#define jx86_sarn_membase_imm(cp, breg, disp, simm)  jx86_shf_membase_imm((cp), JX86_SAR, (breg), (disp), (simm), JX86_NWS)
+#define jx86_sarn_membase_reg(cp, breg, disp, sreg)  jx86_shf_membase_reg((cp), JX86_SAR, (breg), (disp), (sreg), JX86_NWS)
+#define jx86_sarn_reg_imm(cp, dreg, simm)            jx86_shf_reg_imm((cp), JX86_SAR, (dreg), (simm), JX86_NWS)
+#define jx86_sarn_reg_reg(cp, dreg, sreg)            jx86_shf_reg_reg((cp), JX86_SAR, (dreg), (sreg), JX86_NWS)
 
 
 /* TEST instruction
@@ -1897,6 +2007,10 @@ typedef enum
 # define jx86_testq_reg_imm(cp, dreg, simm)           jx86_test_reg_imm((cp), (dreg), (simm), 8)
 # define jx86_testq_reg_reg(cp, dreg, sreg)           jx86_test_reg_reg((cp), (dreg), (sreg), 8)
 #endif /* JX86_64 */
+#define jx86_testn_membase_imm(cp, breg, disp, simm)  jx86_test_membase_imm((cp), (breg), (disp), (simm), JX86_NWS)
+#define jx86_testn_membase_reg(cp, breg, disp, sreg)  jx86_test_membase_reg((cp), (breg), (disp), (sreg), JX86_NWS)
+#define jx86_testn_reg_imm(cp, dreg, simm)            jx86_test_reg_imm((cp), (dreg), (simm), JX86_NWS)
+#define jx86_testn_reg_reg(cp, dreg, sreg)            jx86_test_reg_reg((cp), (dreg), (sreg), JX86_NWS)
 
 
 /* UD2 instruction
@@ -1961,6 +2075,9 @@ typedef enum
 # define jx86_xchgq_reg_membase(cp, dreg, breg, disp) jx86_xchg_reg_membase((cp), (dreg), (breg), (disp), 8)
 # define jx86_xchgq_reg_reg(cp, dreg, sreg)           jx86_xchg_reg_reg((cp), (dreg), (sreg), 8)
 #endif
+#define jx86_xchgn_membase_reg(cp, breg, disp, sreg)  jx86_xchg_membase_reg((cp), (breg), (disp), (sreg), JX86_NWS)
+#define jx86_xchgn_reg_membase(cp, dreg, breg, disp)  jx86_xchg_reg_membase((cp), (dreg), (breg), (disp), JX86_NWS)
+#define jx86_xchgn_reg_reg(cp, dreg, sreg)            jx86_xchg_reg_reg((cp), (dreg), (sreg), JX86_NWS)
 
 
 /* SSE instructions
@@ -2064,5 +2181,6 @@ typedef enum
 #define jx86_ucomisd_xmm_xmm(cp, dxmm, sxmm)                            \
   jx86_sse_op3_xmm_xmm((cp), 0x66, 0x0f, 0x2e, (dxmm), (sxmm))
 
+#endif /* TARGET_amd64 || TARGET_i386 */
 
 #endif /* !CAML_JX86_H */

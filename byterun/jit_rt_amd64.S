@@ -197,13 +197,14 @@ FUNCTION(G(caml_jit_rt_allocN))
         jb      .Lcaml_jit_rt_allocN_gc
         ret
 
-        /* .Lcaml_jit_rt_call_gc:
+        /* caml_jit_rt_call_gc:
 	 *
 	 * Invoked by the caml_jit_rt_allocX functions above when
 	 * the minor heap runs out of space.
 	 *
-	 * Preserves %rdi, %rsi.
+	 * Preserves %rdi, %rsi, %xmm0.
          */
+FUNCTION(G(caml_jit_rt_call_gc))
 .Lcaml_jit_rt_call_gc:
     /* Push preserved registers */
         pushq   %rdi
@@ -232,76 +233,6 @@ FUNCTION(G(caml_jit_rt_allocN))
         addq    $(1*8), %rsp
         popq    %rsi
         popq    %rdi
-        ret
-
-        /* caml_jit_rt_makeblock1:
-	 *
-	 * Allocates and initializes a 1-item block in the
-	 * minor heap. Upon entry %esi contains the tag for
-	 * the block and %rax contains the element to store
-	 * into the block. Upon return %rax contains the
-	 * block pointer.
-         */
-FUNCTION(G(caml_jit_rt_makeblock1))
-    /* Generate the block header */
-        orl     $((1 << 10) | (3 << 8)), %esi   /* Make_header(1, %esi, Caml_black) */
-    /* Allocate space in the minor heap */
-        call    .Lcaml_jit_rt_alloc1
-    /* Initialize the block */
-        movq    %rsi, 0*8(%r15)
-        movq    %rax, 1*8(%r15)
-        leaq    1*8(%r15), %rax
-        ret
-
-        /* caml_jit_rt_makeblock2:
-	 *
-	 * Allocates and initializes a 2-item block in the
-	 * minor heap. Upon entry %esi contains the tag for
-	 * the block, %rax contains the first element and
-	 * 0*8(%r14) contains the second element to store
-	 * into the block. Upon return %rax contains the
-	 * block pointer and %r14 is incremented by 1*8.
-         */
-FUNCTION(G(caml_jit_rt_makeblock2))
-    /* Generate the block header */
-        orl     $((2 << 10) | (3 << 8)), %esi   /* Make_header(2, %esi, Caml_black) */
-    /* Allocate space in the minor heap */
-        call    .Lcaml_jit_rt_alloc2
-    /* Fetch elements */
-        movq    0*8(%r14), %rcx
-    /* Initialize the block */
-        movq    %rsi, 0*8(%r15)
-        movq    %rax, 1*8(%r15)
-        movq    %rcx, 2*8(%r15)
-        addq    $(1*8), %r14
-        leaq    1*8(%r15), %rax
-        ret
-
-        /* caml_jit_rt_makeblock3:
-	 *
-	 * Allocates and initializes a 3-item block in the
-	 * minor heap. Upon entry %esi contains the tag for
-	 * the block, %rax contains the first, 0*8(%r14)
-	 * contains the second and 1*8(%r14) contains the
-	 * third element to store into the block. Upon
-	 * return %rax contains the block pointer and %r14
-	 * is incremented by 2*8.
-	 */
-FUNCTION(G(caml_jit_rt_makeblock3))
-    /* Generate the block header */
-        orl     $((3 << 10) | (3 << 8)), %esi   /* Make_header(3, %esi, Caml_black) */
-    /* Allocate space in the minor heap */
-        call    .Lcaml_jit_rt_alloc3
-    /* Fetch elements */
-        movq    0*8(%r14), %rcx
-        movq    1*8(%r14), %rdx
-    /* Initialize the block */
-        movq    %rsi, 0*8(%r15)
-        movq    %rax, 1*8(%r15)
-        movq    %rcx, 2*8(%r15)
-        movq    %rdx, 3*8(%r15)
-        addq    $(2*8), %r14
-        leaq    1*8(%r15), %rax
         ret
 
         /* caml_jit_rt_makeblockN:
@@ -501,7 +432,12 @@ FUNCTION(G(caml_jit_rt_return))
         addq    $(3*8), %r14
         jmp     .Lcaml_jit_rt_trampoline
 
-        .p2align 3
+        /* caml_jit_rt_trampoline:
+	 *
+	 * Jumps to the byte-code address %rdi, compiling the byte
+	 * code on-demand if it wasn't already compiled.
+	 */
+FUNCTION(G(caml_jit_rt_trampoline))
 .Lcaml_jit_rt_trampoline:
         movslq  (%rdi), %rdx
         ADD_VAR(caml_jit_code_end, %rdx)
@@ -542,7 +478,7 @@ FUNCTION(G(caml_jit_rt_restart))
         /* caml_jit_rt_apply1:
 	 *
 	 * Special case of caml_jit_rt_apply for the APPLY1 opcode.
-	 * Expects Caml return address in %rdi.
+	 * Expects Caml return address in %rdx.
          */
 FUNCTION(G(caml_jit_rt_apply1))
     /* Save arguments */
@@ -550,7 +486,7 @@ FUNCTION(G(caml_jit_rt_apply1))
     /* Prepare stack frame */
         subq    $(3*8), %r14
         movq    %rcx, 0*8(%r14) /* arg1 */
-        movq    %rdi, 1*8(%r14) /* return address */
+        movq    %rdx, 1*8(%r14) /* return address */
         movq    %r12, 2*8(%r14) /* environment */
         movq    %r13, 3*8(%r14) /* extra args */
     /* Record extra arguments */
@@ -561,17 +497,17 @@ FUNCTION(G(caml_jit_rt_apply1))
         /* caml_jit_rt_apply2:
 	 *
 	 * Special case of caml_jit_rt_apply for the APPLY2 opcode.
-	 * Expects Caml return address in %rdi.
+	 * Expects Caml return address in %rdx.
          */
 FUNCTION(G(caml_jit_rt_apply2))
     /* Save arguments */
         movq    0*8(%r14), %rcx /* arg1 */
-        movq    1*8(%r14), %rdx /* arg2 */
+        movq    1*8(%r14), %rdi /* arg2 */
     /* Prepare stack frame */
         subq    $(3*8), %r14
         movq    %rcx, 0*8(%r14) /* arg1 */
-        movq    %rdx, 1*8(%r14) /* arg2 */
-        movq    %rdi, 2*8(%r14) /* return address */
+        movq    %rdi, 1*8(%r14) /* arg2 */
+        movq    %rdx, 2*8(%r14) /* return address */
         movq    %r12, 3*8(%r14) /* environment */
         movq    %r13, 4*8(%r14) /* extra args */
     /* Record extra arguments */
@@ -582,19 +518,19 @@ FUNCTION(G(caml_jit_rt_apply2))
         /* caml_jit_rt_apply3:
 	 *
 	 * Special case of caml_jit_rt_apply for the APPLY3 opcode.
-	 * Expects Caml return address in %rdi.
+	 * Expects Caml return address in %rdx.
          */
 FUNCTION(G(caml_jit_rt_apply3))
     /* Save arguments */
         movq    0*8(%r14), %rcx /* arg1 */
-        movq    1*8(%r14), %rdx /* arg2 */
+        movq    1*8(%r14), %rdi /* arg2 */
         movq    2*8(%r14), %rsi /* arg3 */
     /* Prepare stack frame */
         subq    $(3*8), %r14
         movq    %rcx, 0*8(%r14) /* arg1 */
-        movq    %rdx, 1*8(%r14) /* arg2 */
+        movq    %rdi, 1*8(%r14) /* arg2 */
         movq    %rsi, 2*8(%r14) /* arg3 */
-        movq    %rdi, 3*8(%r14) /* return address */
+        movq    %rdx, 3*8(%r14) /* return address */
         movq    %r12, 4*8(%r14) /* environment */
         movq    %r13, 5*8(%r14) /* extra args */
     /* Record extra arguments */

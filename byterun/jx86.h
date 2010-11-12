@@ -1583,6 +1583,30 @@ typedef JX86_DECLARE_ENUM_CC(J, 0x70U) jx86_jcc_t;
 #define jx86_pushn_reg(cp, sreg)            jx86_push_reg((cp), (sreg), JX86_NWS)
 
 
+/* REP MOVS instructions
+ * ---------------------
+ */
+
+#define jx86_rep_movsl(cp)                      \
+  do {                                          \
+    jx86_emit_uint8((cp), 0xf3);                \
+    jx86_emit_uint8((cp), 0xa5);                \
+  } while (0)
+#ifdef JX86_64
+# define jx86_rep_movsq(cp)                     \
+  do {                                          \
+    jx86_emit_uint8((cp), 0xf3);                \
+    jx86_emit_rex((cp), 8, 0, 0, 0);            \
+    jx86_emit_uint8((cp), 0xa5);                \
+  } while (0)
+# define jx86_rep_movsn(cp)                     \
+  jx86_rep_movsq((cp))
+#else
+# define jx86_rep_movsn(cp)                     \
+  jx86_rep_movsl((cp))
+#endif
+
+
 /* RET instruction
  * ---------------
  */

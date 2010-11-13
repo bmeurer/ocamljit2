@@ -62,7 +62,7 @@ clean::
 	$(ASPP) -DSYS_$(SYSTEM) -o $@ $<
 
 .S.d.o:
-	$(ASPP) -DSYS_$(SYSTEM) -o $@ $<
+	$(ASPP) -DDEBUG -DSYS_$(SYSTEM) -o $@ $<
 
 .S.pic.o:
 	$(ASPP) -fPIC -DSYS_$(SYSTEM) -o $@ $<

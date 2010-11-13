@@ -850,4 +850,88 @@ FUNCTION(G(caml_jit_rt_div_float))
         movlpd  (%rax), %xmm0
         divsd   (%rsi), %xmm0
         jmp     .Lcaml_jit_rt_copy_double
+        
 
+/* Instruction tracing */
+        
+#ifdef DEBUG
+        /* caml_jit_rt_trace:
+	 *
+	 * Expects instruction opcode in %rdi and byte-code
+	 * pc in %rsi. Invokes caml_jit_trace() with the
+	 * appropriate parameters, preserving the current state
+	 * except for %rdi and %rsi.
+	 */
+FUNCTION(G(caml_jit_rt_trace))
+    /* Push preserved registers */
+        pushq   %rax
+        pushq   %rcx
+        pushq   %rdx
+        pushq   %r8
+        pushq   %r9
+        pushq   %r10
+        pushq   %r11
+    /* Save floating-point registers */
+        subq    $(16*8), %rsp
+        movlpd  %xmm0, 0*8(%rsp)
+        movlpd  %xmm1, 1*8(%rsp)
+        movlpd  %xmm2, 2*8(%rsp)
+        movlpd  %xmm3, 3*8(%rsp)
+        movlpd  %xmm4, 4*8(%rsp)
+        movlpd  %xmm5, 5*8(%rsp)
+        movlpd  %xmm6, 6*8(%rsp)
+        movlpd  %xmm7, 7*8(%rsp)
+        movlpd  %xmm8, 8*8(%rsp)
+        movlpd  %xmm9, 9*8(%rsp)
+        movlpd  %xmm10, 10*8(%rsp)
+        movlpd  %xmm11, 11*8(%rsp)
+        movlpd  %xmm12, 12*8(%rsp)
+        movlpd  %xmm13, 13*8(%rsp)
+        movlpd  %xmm14, 14*8(%rsp)
+        movlpd  %xmm15, 15*8(%rsp)
+    /* Make stack and young ptr available to C code */
+        STORE_VAR(%r14, caml_extern_sp)
+        STORE_VAR(%r15, caml_young_ptr)
+    /* Setup the trace parameters */
+        movq    %rax, %rdx      /* accu */
+        movq    %r13, %rcx      /* extra args */
+        movq    %r12, %r8       /* env */
+        movq    %r14, %r9       /* sp */
+    /* Invoke the trace function */
+        pushq   %rbp
+        movq    %rsp, %rbp      /* 16-align C stack */
+        andq    $-16, %rsp
+        call    G(caml_jit_trace)
+        movq    %rbp, %rsp
+        popq    %rbp
+    /* Restore stack and young ptr */
+        LOAD_VAR(caml_extern_sp, %r14)
+        LOAD_VAR(caml_young_ptr, %r15)
+    /* Restore floating-point registers */
+        movlpd  15*8(%rsp), %xmm15
+        movlpd  14*8(%rsp), %xmm14
+        movlpd  13*8(%rsp), %xmm13
+        movlpd  12*8(%rsp), %xmm12
+        movlpd  11*8(%rsp), %xmm11
+        movlpd  10*8(%rsp), %xmm10
+        movlpd  9*8(%rsp), %xmm9
+        movlpd  8*8(%rsp), %xmm8
+        movlpd  7*8(%rsp), %xmm7
+        movlpd  6*8(%rsp), %xmm6
+        movlpd  5*8(%rsp), %xmm5
+        movlpd  4*8(%rsp), %xmm4
+        movlpd  3*8(%rsp), %xmm3
+        movlpd  2*8(%rsp), %xmm2
+        movlpd  1*8(%rsp), %xmm1
+        movlpd  0*8(%rsp), %xmm0
+        addq    $(16*8), %rsp
+    /* Restore preserved registers */
+        popq    %r11
+        popq    %r10
+        popq    %r9
+        popq    %r8
+        popq    %rdx
+        popq    %rcx
+        popq    %rax
+        ret
+#endif

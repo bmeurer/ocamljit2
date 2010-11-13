@@ -91,12 +91,24 @@ unsigned caml_jit_enabled = 0;
 
 
 #ifdef DEBUG
-static unsigned char *caml_jit_debug_addr = NULL;
 static long caml_bcodcount = 0;
 
-static void caml_jit_debug(opcode_t instr, code_t pc, code_t prog, asize_t prog_size, value accu, value extra_args, value env, value *sp)
+void caml_jit_trace(opcode_t instr, code_t pc, value accu, value extra_args, value env, value *sp)
 {
   opcode_t save = *pc;
+  caml_jit_segment_t *segment;
+  code_t prog;
+  asize_t prog_size;
+
+  /* lookup the byte-code segment for the pc */
+  for (segment = caml_jit_segment_head;; segment = segment->segment_next) {
+    assert(segment != NULL);
+    if (segment->segment_prog <= pc && pc < segment->segment_pend)
+      break;
+  }
+
+  prog = segment->segment_prog;
+  prog_size = (segment->segment_pend - prog) * sizeof(*prog);
 
   *pc = instr;
   caml_bcodcount++;
@@ -187,6 +199,7 @@ void caml_jit_init()
   caml_jit_chunk_next = bp;
   caml_jit_chunk_limit = bp + (CAML_JIT_CODE_SIZE - CAML_JIT_CHUNK_SIZE);
 
+#ifdef TARGET_amd64
   /* Generate the compile trampoline code at the end. If
    * caml_jit_compile is within +/-2GB of code area, we
    * use the shorter (and faster) sequence:
@@ -207,7 +220,7 @@ void caml_jit_init()
    *   ud2
    *   .quad caml_jit_compile
    *
-   * Assumes byte code address to compile is in %rdi and
+   * Assumes byte-code address to compile is in %rdi and
    * C stack aligned on 16-byte boundary. Preserves %rax
    * since the compile trampoline may also be used to
    * return to not yet compiled code, where %rax contains
@@ -238,6 +251,37 @@ void caml_jit_init()
     jx86_ud2(cp);                               /* ud2 */
     jx86_emit_uint64(cp, &caml_jit_compile);    /* .quad caml_jit_compile */
   }
+#else
+  /* Generate the compile trampoline code at the end:
+   *
+   *   pushl %eax
+   *   pushl %ecx
+   *   call  caml_jit_compile
+   *   xchgl %eax, %edx
+   *   popl  %ecx
+   *   popl  %eax
+   *   jmpl *%edx
+   *   ud2
+   *
+   * Assumes byte-code address to compile is in %ecx.
+   * Preserves %eax since the compile trampoline may also
+   * be used to return to not yet compiled code, where
+   * %eax contains the return value.
+   *
+   * The UD2 instruction following the indirect jump is
+   * used to stop the processor from decoding down the
+   * fall-through path.
+   */
+  caml_jit_code_end = (cp += CAML_JIT_CODE_SIZE - (1 + 1 + 5 + 1 + 1 + 1 + 2 + 2));
+  jx86_pushl_reg(cp, JX86_EAX);
+  jx86_pushl_reg(cp, JX86_ECX);
+  jx86_call(cp, &caml_jit_compile);
+  jx86_xchgl_reg_reg(cp, JX86_EDX, JX86_EAX);
+  jx86_popl_reg(cp, JX86_ECX);
+  jx86_popl_reg(cp, JX86_EAX);
+  jx86_jmpl_reg(cp, JX86_EDX);
+  jx86_ud2(cp);
+#endif
   assert(cp == bp + CAML_JIT_CODE_SIZE);
 
   /* Generate the NOPs in front of the compile trampoline.
@@ -272,33 +316,6 @@ void caml_jit_init()
   /* setup the callback return code */
   caml_jit_callback_return = cp - caml_jit_code_end;
   jx86_jmp(cp, &caml_jit_rt_stop);
-
-#ifdef DEBUG
-  caml_jit_debug_addr = cp;
-  jx86_pushq_reg(cp, JX86_R8);
-  jx86_pushq_reg(cp, JX86_R9);
-  jx86_pushq_reg(cp, JX86_R10);
-  jx86_pushq_reg(cp, JX86_R11);
-  jx86_pushq_reg(cp, JX86_RAX);
-  jx86_movq_reg_imm(cp, JX86_R11, &caml_young_ptr);
-  jx86_movq_membase_reg(cp, JX86_R11, 0, JX86_R15);
-  jx86_movq_reg_reg(cp, JX86_R15, JX86_RSP);
-  jx86_movq_reg_reg(cp, JX86_R8, JX86_RAX);
-  jx86_movq_reg_reg(cp, JX86_R9, JX86_R13);
-  jx86_andq_reg_imm(cp, JX86_RSP, -16);
-  jx86_pushq_reg(cp, JX86_R14);
-  jx86_pushq_reg(cp, JX86_R12);
-  jx86_call(cp, &caml_jit_debug);
-  jx86_movq_reg_reg(cp, JX86_RSP, JX86_R15);
-  jx86_movq_reg_imm(cp, JX86_R11, &caml_young_ptr);
-  jx86_movq_reg_membase(cp, JX86_R15, JX86_R11, 0);
-  jx86_popq_reg(cp, JX86_RAX);
-  jx86_popq_reg(cp, JX86_R11);
-  jx86_popq_reg(cp, JX86_R10);
-  jx86_popq_reg(cp, JX86_R9);
-  jx86_popq_reg(cp, JX86_R8);
-  jx86_ret(cp);
-#endif
 
   caml_jit_code_base = bp - (STOP + 1);
 }
@@ -502,35 +519,22 @@ static void *caml_jit_compile(code_t pc)
     assert(cp >= segment->segment_current);
     assert(cp < CAML_JIT_CHUNK_END(segment->segment_chunks));
 
+    /* instruction tracing */
 #ifdef DEBUG
-    if (caml_trace_flag && caml_jit_debug_addr != NULL) {
-      if (sp != 0) {
-        jx86_pushn_reg(cp, CAML_JIT_NSP);
+    if (caml_trace_flag) {
+      if (sp != 0)
         jx86_addn_reg_imm(cp, CAML_JIT_NSP, sp);
-      }
 
-      jx86_pushq_reg(cp, JX86_RDI);
-      jx86_pushq_reg(cp, JX86_RSI);
-      jx86_pushq_reg(cp, JX86_RDX);
-      jx86_pushq_reg(cp, JX86_RCX);
       jx86_movl_reg_imm(cp, JX86_EDI, instr);
       jx86_movq_reg_imm(cp, JX86_RSI, pc);
-      jx86_movq_reg_imm(cp, JX86_RDX, segment->segment_prog);
-      jx86_movq_reg_imm(cp, JX86_RCX, (segment->segment_pend - segment->segment_prog) * sizeof(*segment->segment_prog));
-      jx86_call(cp, caml_jit_debug_addr);
-      jx86_popq_reg(cp, JX86_RCX);
-      jx86_popq_reg(cp, JX86_RDX);
-      jx86_popq_reg(cp, JX86_RSI);
-      jx86_popq_reg(cp, JX86_RDI);
+      jx86_call(cp, caml_jit_rt_trace);
 
-      if (sp != 0) {
-        jx86_popn_reg(cp, CAML_JIT_NSP);
-      }
+      if (sp != 0) 
+        jx86_subn_reg_imm(cp, CAML_JIT_NSP, sp);
 
       /* make sure we have reasonable space available */
       if (CAML_JIT_GNUC_UNLIKELY (cp > segment->segment_limit))
         cp = caml_jit_segment_continue(segment, cp);
-
     }
 #endif
 
@@ -671,13 +675,15 @@ static void *caml_jit_compile(code_t pc)
       int num_args = instr - (APPTERM1 - 1);
       int newsp;
 
+      /* make sure reasonable space is available */
+      if (CAML_JIT_GNUC_UNLIKELY (cp + (2 * num_args) * 15 > segment->segment_limit))
+        cp = caml_jit_segment_continue(segment, cp);
+
       /* slide the num_args bottom words of the current frame to the
        * top of the frame, and discard the remainder of the frame.
        */
       newsp = sp + (*pc++ - num_args) * CAML_JIT_WORD_SIZE;
       for (i = num_args - 1; i >= 0; --i) {
-        if (CAML_JIT_GNUC_UNLIKELY (cp > segment->segment_limit))
-          cp = caml_jit_segment_continue(segment, cp);
         jx86_movn_reg_membase(cp, JX86_NDX, CAML_JIT_NSP, sp + i * CAML_JIT_WORD_SIZE);
         jx86_movn_membase_reg(cp, CAML_JIT_NSP, newsp + i * CAML_JIT_WORD_SIZE, JX86_NDX);
       }
@@ -705,7 +711,6 @@ static void *caml_jit_compile(code_t pc)
         jx86_addn_reg_imm(cp, CAML_JIT_NSP, sp);
         sp = 0;
       }
-    call_addr:
       jx86_call(cp, addr);
       break;
 
@@ -1060,10 +1065,6 @@ static void *caml_jit_compile(code_t pc)
     case GETFLOATFIELD:
       jx86_movlpd_xmm_membase(cp, JX86_XMM0, JX86_NAX, *pc++ * sizeof(double));
     copy_double:
-      if (sp != 0) {
-        jx86_addn_reg_imm(cp, CAML_JIT_NSP, sp);
-        sp = 0;
-      }
       addr = &caml_jit_rt_copy_double;
       goto flush_call_addr;
 
@@ -1157,14 +1158,12 @@ static void *caml_jit_compile(code_t pc)
 
     case BRANCH: {
       code_t dpc = pc + *pc;
-
       /* flush the stack pointer */
       if (sp != 0) {
         jx86_addn_reg_imm(cp, CAML_JIT_NSP, sp);
         sp = 0;
       }
-
-      /* check if target already compiled */
+      /* check if target is already compiled */
       if (*dpc < 0) {
         /* jump to known target */
         addr = caml_jit_code_end + *dpc;
@@ -1348,8 +1347,12 @@ static void *caml_jit_compile(code_t pc)
       pc[-1] = (opcode_t) (cp - caml_jit_code_end);
       assert(pc[-1] < 0);
 
+#ifdef TARGET_amd64
       jx86_movq_reg_imm(cp, JX86_RDX, &caml_something_to_do);
       jx86_testl_membase_imm(cp, JX86_RDX, 0, -1);
+#else
+      jx86_testl_mem_imm(cp, &caml_something_to_do, -1);
+#endif
       jnz8 = cp;
       jx86_jz8_forward(cp);
 #ifdef TARGET_amd64
@@ -1361,10 +1364,14 @@ static void *caml_jit_compile(code_t pc)
       jx86_jcc8_patch(cp, jnz8);
       if (instr == POPTRAP) {
         assert(sp == 0);
+        jx86_movn_reg_membase(cp, JX86_NCX, CAML_JIT_NSP, 1 * CAML_JIT_WORD_SIZE);
+#ifdef TARGET_amd64
         jx86_movq_reg_imm(cp, JX86_RDI, &caml_trapsp);
-        jx86_movq_reg_membase(cp, JX86_RCX, JX86_R14, 1 * 8);
-        sp = 4 * 8;
         jx86_movq_membase_reg(cp, JX86_RDI, 0, JX86_RCX);
+#else
+        jx86_movl_mem_reg(cp, &caml_trapsp, JX86_ECX);
+#endif
+        sp = 4 * CAML_JIT_WORD_SIZE;
       }
       break;
     }
@@ -1770,21 +1777,40 @@ static void *caml_jit_compile(code_t pc)
       jx86_movn_reg_memindex(cp, JX86_NAX, JX86_NDX, -(CAML_JIT_WORD_SIZE / 2), JX86_NAX, CAML_JIT_WORD_SHIFT - 1);
       break;
 
-    case GETPUBMET:
-      jx86_movq_reg_membase(cp, JX86_RDI, JX86_RAX, 0);
+    case GETPUBMET: {
+      const value tag = Val_int(*pc++);
       sp -= CAML_JIT_WORD_SIZE;
-      jx86_movq_membase_reg(cp, JX86_R14, sp, JX86_RAX);
-      jx86_movq_reg_imm(cp, JX86_RSI, Val_int(*pc++));
-      jx86_movq_reg_imm(cp, JX86_RDX, (ssize_t) pc);
+      jx86_movn_membase_reg(cp, CAML_JIT_NSP, sp, JX86_NAX);
+#ifdef TARGET_i386
+      jx86_pushl_imm(cp, pc);
+      jx86_pushl_imm(cp, tag);
+      jx86_pushl_reg(cp, JX86_EAX);
+#else
+      jx86_movq_reg_membase(cp, JX86_RDI, JX86_RAX, 0);
+      jx86_movq_reg_imm(cp, JX86_RSI, tag);
+      jx86_movq_reg_imm(cp, JX86_RDX, pc);
+#endif
       pc++;
-      addr = &caml_cache_public_method2;
-      goto call_addr;
+      jx86_call(cp, &caml_cache_public_method2);
+#ifdef TARGET_i386
+      jx86_addl_reg_imm(cp, JX86_ESP, 3 * CAML_JIT_WORD_SIZE);
+#endif
+      break;
+    }
 
     case GETDYNMET:
+#ifdef TARGET_i386
+      jx86_pushl_reg(cp, JX86_EAX);
+      jx86_pushl_membase(cp, CAML_JIT_NSP, sp);
+#else
       jx86_movq_reg_reg(cp, JX86_RSI, JX86_RAX);
-      jx86_movq_reg_membase(cp, JX86_RDI, JX86_R14, sp);
-      addr = &caml_get_public_method;
-      goto call_addr;
+      jx86_movq_reg_membase(cp, JX86_RDI, CAML_JIT_NSP, sp);
+#endif
+      jx86_call(cp, &caml_get_public_method);
+#ifdef TARGET_i386
+      jx86_addl_reg_imm(cp, JX86_ESP, 2 * CAML_JIT_WORD_SIZE);
+#endif
+      break;
 
 /* Debugging and machine control */
 

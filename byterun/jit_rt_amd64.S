@@ -28,7 +28,7 @@
 #define FUNCTION(name) \
         .globl name; \
         .private_extern name; \
-        .p2align 3; \
+        .p2align 4; \
         name:
 
 #else
@@ -40,7 +40,7 @@
         .globl name; \
         .type name,@function; \
         .hidden name; \
-        .p2align 3; \
+        .p2align 4; \
         name:
 
 #endif

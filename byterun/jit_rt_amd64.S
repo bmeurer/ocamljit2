@@ -416,7 +416,7 @@ FUNCTION(G(caml_jit_rt_apply))
     /* Prefetch the closure byte code */
         prefetcht0 (%rdi)
     /* Check for pending signal and jump to the closure's code address */
-        TESTL_VAR($0xffffffff, caml_something_to_do)
+        TESTL_VAR($-1, caml_something_to_do)
         jnz     .Lcaml_jit_rt_process_signal
         jmp     .Lcaml_jit_rt_trampoline
 .Lcaml_jit_rt_apply_realloc_stack:
@@ -488,20 +488,14 @@ FUNCTION(G(caml_jit_rt_raise))
 .Lcaml_jit_rt_raise:
     /* Stash backtrace if enabled (pc in %rsi) */
         TESTL_VAR($-1, caml_backtrace_active)
-        jz      .Lcaml_jit_rt_raise1
-        movq    %rax, %rbx              /* preserve %rax */
-        movq    %rax, %rdi
-        movq    %r14, %rdx
-        call    GCALL(caml_stash_backtrace)
-        movq    %rbx, %rax              /* restore %rax */
-.Lcaml_jit_rt_raise1:        
+        jnz     .Lcaml_jit_rt_raise_2
+.Lcaml_jit_rt_raise_1:
     /* Check if we need to throw the exception back to C code */
         LOAD_VAR(caml_stack_high, %r14)
         LOAD_VAR(caml_trapsp, %r10)
         subq    1*8(%rsp), %r14
         cmpq    %r14, %r10              /* caml_trapsp >= caml_stack_high - initial_sp_offset */
         jge     .Lcaml_jit_rt_stop_exn
-.Lcaml_jit_rt_raise2:        
     /* Exception is caught within Caml code */
         movq    0*8(%r10), %rdi         /* Trap_pc(sp) */
         movq    1*8(%r10), %rsi         /* Trap_link(sp) */
@@ -511,6 +505,13 @@ FUNCTION(G(caml_jit_rt_raise))
     /* Restore trap stack pointer */
         STORE_VAR(%rsi, caml_trapsp)
         jmp     .Lcaml_jit_rt_start_enter
+.Lcaml_jit_rt_raise_2:
+        movq    %rax, %rbx              /* preserve %rax */
+        movq    %rax, %rdi
+        movq    %r14, %rdx
+        call    GCALL(caml_stash_backtrace)
+        movq    %rbx, %rax              /* restore %rax */
+        jmp     .Lcaml_jit_rt_raise_1
 
         /* caml_jit_rt_start:
 	 *

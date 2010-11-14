@@ -36,6 +36,7 @@ CAMLextern void caml_alloc_dependent_memory (mlsize_t);
 CAMLextern void caml_free_dependent_memory (mlsize_t);
 CAMLextern void caml_modify (value *, value);
 CAMLextern void caml_initialize (value *, value);
+CAMLextern value * caml_initialize_n (value *, value *, mlsize_t);
 CAMLextern value caml_check_urgent_gc (value);
 CAMLextern void * caml_stat_alloc (asize_t);              /* Size in bytes. */
 CAMLextern void caml_stat_free (void *);

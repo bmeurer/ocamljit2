@@ -235,37 +235,6 @@ FUNCTION(G(caml_jit_rt_call_gc))
         popq    %rdi
         ret
 
-        /* caml_jit_rt_makeblockN:
-	 *
-	 * Allocates and initializes a %rdi-item block in the
-	 * minor heap. Upon entry %esi contains the tag for the
-	 * block, %rdi contains the wosize, %rax contains the
-	 * first element and the Caml stack holds the remaining
-	 * elements.
-	 *
-	 * Upon return %rax contains the block pointer and %r14
-	 * is incremented by (%rdi-1)*8.
-	 */
-FUNCTION(G(caml_jit_rt_makeblockN))
-    /* Allocate space in the minor heap */
-        leaq    8(, %rdi, 8), %rdx
-        call    .Lcaml_jit_rt_allocN
-    /* Calculate the number of stack arguments */
-        leaq    -1(%rdi), %rcx
-    /* Generate the block header */
-        shlq    $10, %rdi
-        orl     $(3 << 8), %esi
-        orq     %rdi, %rsi
-    /* Initialize the block */
-        leaq    2*8(%r15), %rdi
-        movq    %rsi, 0*8(%r15)
-        movq    %r14, %rsi
-        movq    %rax, 1*8(%r15)
-        rep movsq
-        leaq    1*8(%r15), %rax
-        movq    %rsi, %r14
-        ret
-
         /* caml_jit_rt_makefloatblock:
 	 *
 	 * Allocates a new float block with Double_array_tag. Upon
@@ -335,48 +304,6 @@ FUNCTION(G(caml_jit_rt_makefloatblock))
         jmp     .Lcaml_jit_rt_makefloatblock_loop_1
         
 
-        /* caml_jit_rt_makeblock_shr:
-	 *
-	 * Allocates a shared block in the major heap. Upon entry
-	 * %rdi contains the wosize of the new block and %rsi
-	 * contains the tag. Upon return, %rax contains the pointer
-	 * to the newly allocated block.
-         *
-	 * The first block field is initialized with the value in
-	 * %rax, the remaining fields are initialized with values
-	 * popped off the stack.
-	 */
-FUNCTION(G(caml_jit_rt_makeshrblock))
-    /* Align C stack on 16-byte boundary */
-        pushq   %r12
-        pushq   %r13
-        movq    %rsp, %rbp
-        andq    $-16, %rsp
-    /* Push %rax onto the Caml stack */
-        subq    $(1*8), %r14
-        movq    %rax, 0*8(%r14)
-    /* Allocate a block in the major heap */
-        movq    %rdi, %r13      /* preserve wosize in %r13 */
-        call    GCALL(caml_alloc_shr)
-        movq    %rax, %rbx      /* save block pointer in %rbx */
-        movq    %rax, %r12
-        .p2align 3
-.Lcaml_jit_rt_makeshrblock_regular_loop:
-        movq    %r12, %rdi
-        movq    0*8(%r14), %rsi
-        call    GCALL(caml_initialize)
-        subq    $1, %r13
-        leaq    1*8(%r14), %r14
-        leaq    1*8(%r12), %r12
-        jnz     .Lcaml_jit_rt_makeshrblock_regular_loop
-.Lcaml_jit_rt_makeshrblock_done:
-        movq    %rbx, %rax      /* restore block pointer */
-        movq    %rbp, %rsp
-        popq    %r13
-        popq    %r12
-        ret
-
-        
 /* Function return */
 
         /* caml_jit_rt_grab_closure_and_return:
@@ -904,9 +831,6 @@ FUNCTION(G(caml_jit_rt_trace))
         call    G(caml_jit_trace)
         movq    %rbp, %rsp
         popq    %rbp
-    /* Restore stack and young ptr */
-        LOAD_VAR(caml_extern_sp, %r14)
-        LOAD_VAR(caml_young_ptr, %r15)
     /* Restore floating-point registers */
         movlpd  15*8(%rsp), %xmm15
         movlpd  14*8(%rsp), %xmm14

@@ -513,6 +513,28 @@ void caml_initialize (value *fp, value val)
   }
 }
 
+/* [caml_initialize_n] invokes [caml_initialize] [n] times, returning
+   [fp] afterwards.
+*/
+value * caml_initialize_n (value *fp, value *vp, mlsize_t n)
+{
+  value *bp = fp;
+  const int fp_in_heap = Is_in_heap (fp);
+
+  for (; n != 0; --n, ++fp, ++vp) {
+    const value val = *vp;
+    *fp = val;
+    if (Is_block (val) && Is_young (val) && fp_in_heap) {
+      if (caml_ref_table.ptr >= caml_ref_table.limit) {
+        caml_realloc_ref_table (&caml_ref_table);
+      }
+      *caml_ref_table.ptr++ = fp;
+    }
+  }
+
+  return bp;
+}
+
 /* You must use [caml_modify] to change a field of an existing shared block,
    unless you are sure the value being overwritten is not a shared block and
    the value being written is not a young block. */

@@ -518,7 +518,7 @@ FUNCTION(G(caml_jit_rt_raise))
 	 *
 	 *  caml_jit_rt_start(code, accu, Val_int(extra_args), env, sp)
 	 *
-	 * hence the initial register assignment ist:
+	 * hence the initial register assignment is:
 	 *
          *  %rdi - byte code address
          *  %rsi - accu

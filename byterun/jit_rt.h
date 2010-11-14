@@ -46,6 +46,8 @@ CAML_JIT_INTERNAL void  caml_jit_rt_sub_float();
 CAML_JIT_INTERNAL void  caml_jit_rt_mul_float();
 CAML_JIT_INTERNAL void  caml_jit_rt_div_float();
 
+CAML_JIT_INTERNAL void  caml_jit_rt_copy_floats();
+
 #ifdef DEBUG
 CAML_JIT_INTERNAL void  caml_jit_rt_trace();
 #endif

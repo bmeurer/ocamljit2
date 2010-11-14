@@ -235,75 +235,7 @@ FUNCTION(G(caml_jit_rt_call_gc))
         popq    %rdi
         ret
 
-        /* caml_jit_rt_makefloatblock:
-	 *
-	 * Allocates a new float block with Double_array_tag. Upon
-	 * entry %rdi contains the desired wosize of the new float
-	 * block, %rax contains the pointer to the first float value
-	 * and the Caml stack contains the pointers to the remaining
-	 * values.
-	 *
-	 * Upon return %rax contains the block pointer to the newly
-	 * allocated block and %r14 is incremented by wosize * 8.
-	 *
-	 * Note that this implementation differs slightly from the
-	 * one found in the interpreter in that it attempts to allocate
-	 * the block in the minor heap without looking at the wosize
-	 * first and only falls back to major heap allocation if the
-	 * block would not fit into the minor heap.
-	 */
-.Lcaml_jit_rt_makefloatblock_gc:
-    /* Fallback to major heap allocation if %rcx > Max_young_wosize */
-        cmpq    $256, %rcx
-        leaq    (%r15, %r11, 1), %r15   /* reset young ptr */
-        jg      .Lcaml_jit_rt_makefloatblock_shr
-        call    .Lcaml_jit_rt_call_gc
-FUNCTION(G(caml_jit_rt_makefloatblock))
-    /* Allocate in the minor heap */
-        leaq    8(, %rdi, 8), %r11
-        subq    %r11, %r15
-        CMP_VAR(caml_young_limit, %r15)
-    /* Setup for block initializing */
-        movq    %rdi, %rcx      /* wosize */
-        movlpd  (%rax), %xmm0   /* 1st double value */
-        leaq    1*8(%r15), %rdx /* block pointer */
-    /* Check if minor heap exhausted */
-        jl      .Lcaml_jit_rt_makefloatblock_gc
-    /* Generate the block header */
-        shlq    $10, %rdi
-        orq     $((3 << 8) | 254), %rdi
-    /* Initialize the float block */
-        movq    %rdx, %rax
-        movq    %rdi, 0*8(%r15)
-        jmp     .Lcaml_jit_rt_makefloatblock_loop_1
-        .p2align 3
-.Lcaml_jit_rt_makefloatblock_loop:
-        movq    0*8(%r14), %r11
-        leaq    1*8(%rdx), %rdx
-        movlpd  (%r11), %xmm0
-        leaq    1*8(%r14), %r14
-.Lcaml_jit_rt_makefloatblock_loop_1:
-        subq    $1, %rcx
-        movlpd  %xmm0, 0*8(%rdx)
-        jnz     .Lcaml_jit_rt_makefloatblock_loop
-        ret
-    /* Allocate the float block in the major heap */
-.Lcaml_jit_rt_makefloatblock_shr:
-        subq    $(2*8), %rsp
-        movq    %rcx,  0*8(%rsp)
-        movlpd  %xmm0, 1*8(%rsp)
-        movl    $254, %esi
-        movq    %rsp, %rbp
-        andq    $-16, %rsp
-        call    GCALL(caml_alloc_shr)
-        movq    %rbp, %rsp
-        movq    0*8(%rsp), %rcx
-        movlpd  1*8(%rsp), %xmm0
-        addq    $(2*8), %rsp
-        movq    %rax, %rdx
-        jmp     .Lcaml_jit_rt_makefloatblock_loop_1
         
-
 /* Function return */
 
         /* caml_jit_rt_grab_closure_and_return:
@@ -777,7 +709,31 @@ FUNCTION(G(caml_jit_rt_div_float))
         movlpd  (%rax), %xmm0
         divsd   (%rsi), %xmm0
         jmp     .Lcaml_jit_rt_copy_double
-        
+
+
+/* Copying operations */
+
+        /* caml_jit_rt_copy_floats:
+	 *
+	 * Copies %rcx double values from the stack %r14 to
+	 * the double array at %rdx. %rcx is assumed to be
+	 * non-zero.
+	 *
+	 * Upon return, %r14 will be incremented by %rcx*8.
+	 *
+	 * Clobbers %rcx, %rdx, %r11 and %xmm0.
+	 */
+FUNCTION(G(caml_jit_rt_copy_floats))
+.Lcaml_jit_rt_copy_floats_1:
+        subl    $1, %ecx
+        movq    0*8(%r14), %r11
+        movlpd  0*8(%r11), %xmm0
+        movlpd  %xmm0, 0*8(%rdx)
+        leaq    1*8(%r14), %r14
+        leaq    1*8(%rdx), %rdx
+        jnz     .Lcaml_jit_rt_copy_floats_1
+        ret
+
 
 /* Instruction tracing */
         

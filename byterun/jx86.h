@@ -360,6 +360,14 @@ typedef enum
 #define jx86_emit_address_byte(cp, m, o, r)             \
   jx86_emit_uint8((cp), (((m) & 0x03) << 6) | (((o) & 0x07) << 3) | ((r) & 0x07))
 
+#ifdef JX86_32
+# define jx86_emit_mem(cp, r, mem)                              \
+  do {                                                          \
+    jx86_emit_address_byte((cp), 0, (r), 5);                    \
+    jx86_emit_int32((cp), (mem));                               \
+  } while (0)
+#endif /* JX86_32 */
+
 #define jx86_emit_membase(cp, r, breg, disp)                    \
   do {                                                          \
     if (JX86_REG_CODE(breg) != JX86_EBP && (disp) == 0) {       \
@@ -1301,6 +1309,18 @@ typedef JX86_DECLARE_ENUM_CC(J, 0x70U) jx86_jcc_t;
  * ---------------
  */
 
+#ifdef JX86_32
+# define jx86_mov_mem_reg(cp, dmem, sreg, size)                 \
+  do {                                                          \
+    const jx86_int32_t _dmem_ = (const jx86_int32_t) (dmem);    \
+    const jx86_reg_t _sreg_ = (const jx86_reg_t) (sreg);        \
+    const unsigned _size_ = (const unsigned) (size);            \
+    jx86_emit_osprex((cp), _size_, 0, 0, _sreg_);               \
+    jx86_emit_opcode1((cp), _size_, 0x88);                      \
+    jx86_emit_mem((cp), _sreg_, _dmem_);                        \
+  } while (0)
+#endif /* JX86_32 */
+
 #define jx86_mov_membase_imm(cp, breg, disp, simm, size)                \
   do {                                                                  \
     const jx86_reg_t _breg_ = (const jx86_reg_t) (breg);                \
@@ -1383,6 +1403,18 @@ typedef JX86_DECLARE_ENUM_CC(J, 0x70U) jx86_jcc_t;
     }                                                                   \
   } while (0)
 
+#ifdef JX86_32
+# define jx86_mov_reg_mem(cp, dreg, smem, size)                 \
+  do {                                                          \
+    const jx86_reg_t _dreg_ = (const jx86_reg_t) (dreg);        \
+    const jx86_int32_t _smem_ = (const jx86_int32_t) (smem);    \
+    const unsigned _size_ = (const unsigned) (size);            \
+    jx86_emit_osprex((cp), _size_, 0, 0, _dreg_);               \
+    jx86_emit_opcode1((cp), _size_, 0x8a);                      \
+    jx86_emit_mem((cp), _dreg_, _smem_);                        \
+  } while (0)
+#endif /* JX86_32 */
+
 #define jx86_mov_reg_membase(cp, dreg, breg, disp, size)              \
   do {                                                                \
     const jx86_reg_t _dreg_ = (const jx86_reg_t) (dreg);              \
@@ -1417,27 +1449,45 @@ typedef JX86_DECLARE_ENUM_CC(J, 0x70U) jx86_jcc_t;
     jx86_emit_reg((cp), _dreg_, _sreg_);                        \
   } while (0)
 
+#ifdef JX86_32
+# define jx86_movb_mem_reg(cp, dmem, sreg)                         jx86_mov_mem_reg((cp), (dmem), (sreg), 1)
+#endif
 #define jx86_movb_membase_imm(cp, breg, disp, simm)                jx86_mov_membase_imm((cp), (breg), (disp), (simm), 1)
 #define jx86_movb_membase_reg(cp, breg, disp, sreg)                jx86_mov_membase_reg((cp), (breg), (disp), (sreg), 1)
 #define jx86_movb_memindex_imm(cp, breg, disp, ireg, shift, simm)  jx86_mov_memindex_imm((cp), (breg), (disp), (ireg), (shift), (simm), 1)
 #define jx86_movb_memindex_reg(cp, breg, disp, ireg, shift, sreg)  jx86_mov_memindex_reg((cp), (breg), (disp), (ireg), (shift), (sreg), 1)
 #define jx86_movb_reg_imm(cp, dreg, simm)                          jx86_mov_reg_imm((cp), (dreg), (simm), 1)
+#ifdef JX86_32
+# define jx86_movb_reg_mem(cp, dreg, smem)                         jx86_mov_reg_mem((cp), (dreg), (smem), 1)
+#endif
 #define jx86_movb_reg_membase(cp, dreg, breg, disp)                jx86_mov_reg_membase((cp), (dreg), (breg), (disp), 1)
 #define jx86_movb_reg_memindex(cp, dreg, breg, disp, ireg, shift)  jx86_mov_reg_memindex((cp), (dreg), (breg), (disp), (ireg), (shift), 1)
 #define jx86_movb_reg_reg(cp, dreg, sreg)                          jx86_mov_reg_reg((cp), (dreg), (sreg), 1)
+#ifdef JX86_32
+# define jx86_movw_mem_reg(cp, dmem, sreg)                         jx86_mov_mem_reg((cp), (dmem), (sreg), 2)
+#endif
 #define jx86_movw_membase_imm(cp, breg, disp, simm)                jx86_mov_membase_imm((cp), (breg), (disp), (simm), 2)
 #define jx86_movw_membase_reg(cp, breg, disp, sreg)                jx86_mov_membase_reg((cp), (breg), (disp), (sreg), 2)
 #define jx86_movw_memindex_imm(cp, breg, disp, ireg, shift, simm)  jx86_mov_memindex_imm((cp), (breg), (disp), (ireg), (shift), (simm), 2)
 #define jx86_movw_memindex_reg(cp, breg, disp, ireg, shift, sreg)  jx86_mov_memindex_reg((cp), (breg), (disp), (ireg), (shift), (sreg), 2)
 #define jx86_movw_reg_imm(cp, dreg, simm)                          jx86_mov_reg_imm((cp), (dreg), (simm), 2)
+#ifdef JX86_32
+# define jx86_movw_reg_mem(cp, dreg, smem)                         jx86_mov_reg_mem((cp), (dreg), (smem), 2)
+#endif
 #define jx86_movw_reg_membase(cp, dreg, breg, disp)                jx86_mov_reg_membase((cp), (dreg), (breg), (disp), 2)
 #define jx86_movw_reg_memindex(cp, dreg, breg, disp, ireg, shift)  jx86_mov_reg_memindex((cp), (dreg), (breg), (disp), (ireg), (shift), 2)
 #define jx86_movw_reg_reg(cp, dreg, sreg)                          jx86_mov_reg_reg((cp), (dreg), (sreg), 2)
+#ifdef JX86_32
+# define jx86_movl_mem_reg(cp, dmem, sreg)                         jx86_mov_mem_reg((cp), (dmem), (sreg), 4)
+#endif
 #define jx86_movl_membase_imm(cp, breg, disp, simm)                jx86_mov_membase_imm((cp), (breg), (disp), (simm), 4)
 #define jx86_movl_membase_reg(cp, breg, disp, sreg)                jx86_mov_membase_reg((cp), (breg), (disp), (sreg), 4)
 #define jx86_movl_memindex_imm(cp, breg, disp, ireg, shift, simm)  jx86_mov_memindex_imm((cp), (breg), (disp), (ireg), (shift), (simm), 4)
 #define jx86_movl_memindex_reg(cp, breg, disp, ireg, shift, sreg)  jx86_mov_memindex_reg((cp), (breg), (disp), (ireg), (shift), (sreg), 4)
 #define jx86_movl_reg_imm(cp, dreg, simm)                          jx86_mov_reg_imm((cp), (dreg), (simm), 4)
+#ifdef JX86_32
+# define jx86_movl_reg_mem(cp, dreg, smem)                         jx86_mov_reg_mem((cp), (dreg), (smem), 4)
+#endif
 #define jx86_movl_reg_membase(cp, dreg, breg, disp)                jx86_mov_reg_membase((cp), (dreg), (breg), (disp), 4)
 #define jx86_movl_reg_memindex(cp, dreg, breg, disp, ireg, shift)  jx86_mov_reg_memindex((cp), (dreg), (breg), (disp), (ireg), (shift), 4)
 #define jx86_movl_reg_reg(cp, dreg, sreg)                          jx86_mov_reg_reg((cp), (dreg), (sreg), 4)
@@ -1959,6 +2009,19 @@ typedef enum
  * ----------------
  */
 
+#ifdef JX86_32
+# define jx86_test_mem_imm(cp, dmem, simm, size)                \
+  do {                                                          \
+    const jx86_int32_t _dmem_ = (const jx86_int32_t) (dmem);    \
+    const jx86_int32_t _simm_ = (const jx86_int32_t) (simm);    \
+    const unsigned _size_ = (const unsigned) (size);            \
+    jx86_emit_osprex((cp), _size_, 0, 0, 0);                    \
+    jx86_emit_opcode1((cp), _size_, 0xf6);                      \
+    jx86_emit_mem((cp), 0, _dmem_);                             \
+    jx86_emit_imm((cp), _size_, _simm_);                        \
+  } while (0)
+#endif /* JX86_32 */
+
 #define jx86_test_membase_imm(cp, breg, disp, simm, size)       \
   do {                                                          \
     const jx86_reg_t _breg_ = (const jx86_reg_t) (breg);        \
@@ -2007,14 +2070,23 @@ typedef enum
     jx86_emit_reg((cp), _sreg_, _dreg_);                        \
   } while (0)
 
+#ifdef JX86_32
+# define jx86_testb_mem_imm(cp, dmem, simm)           jx86_test_mem_imm((cp), (dmem), (simm), 1)
+#endif
 #define jx86_testb_membase_imm(cp, breg, disp, simm)  jx86_test_membase_imm((cp), (breg), (disp), (simm), 1)
 #define jx86_testb_membase_reg(cp, breg, disp, sreg)  jx86_test_membase_reg((cp), (breg), (disp), (sreg), 1)
 #define jx86_testb_reg_imm(cp, dreg, simm)            jx86_test_reg_imm((cp), (dreg), (simm), 1)
 #define jx86_testb_reg_reg(cp, dreg, sreg)            jx86_test_reg_reg((cp), (dreg), (sreg), 1)
+#ifdef JX86_32
+# define jx86_testw_mem_imm(cp, dmem, simm)           jx86_test_mem_imm((cp), (dmem), (simm), 2)
+#endif
 #define jx86_testw_membase_imm(cp, breg, disp, simm)  jx86_test_membase_imm((cp), (breg), (disp), (simm), 2)
 #define jx86_testw_membase_reg(cp, breg, disp, sreg)  jx86_test_membase_reg((cp), (breg), (disp), (sreg), 2)
 #define jx86_testw_reg_imm(cp, dreg, simm)            jx86_test_reg_imm((cp), (dreg), (simm), 2)
 #define jx86_testw_reg_reg(cp, dreg, sreg)            jx86_test_reg_reg((cp), (dreg), (sreg), 2)
+#ifdef JX86_32
+# define jx86_testl_mem_imm(cp, dmem, simm)           jx86_test_mem_imm((cp), (dmem), (simm), 4)
+#endif
 #define jx86_testl_membase_imm(cp, breg, disp, simm)  jx86_test_membase_imm((cp), (breg), (disp), (simm), 4)
 #define jx86_testl_membase_reg(cp, breg, disp, sreg)  jx86_test_membase_reg((cp), (breg), (disp), (sreg), 4)
 #define jx86_testl_reg_imm(cp, dreg, simm)            jx86_test_reg_imm((cp), (dreg), (simm), 4)

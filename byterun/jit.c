@@ -88,6 +88,26 @@ static unsigned char *caml_jit_code_raise_zero_divide = NULL;
 opcode_t caml_jit_callback_return = 0; /* for caml_callbackN_exn */
 unsigned caml_jit_enabled = 0;
 
+/* translation of EQ..GEINT opcodes to setcc codes */
+static const unsigned char caml_jit_cmp2x86setcc[6] = {
+  JX86_SETE,  /* EQ */
+  JX86_SETNE, /* NEQ */
+  JX86_SETL,  /* LTINT */
+  JX86_SETLE, /* LEINT */
+  JX86_SETG,  /* GTINT */
+  JX86_SETGE  /* GEINT */
+};
+
+/* translation of BEQ..BGEINT opcodes to jcc opcodes (reversed operands) */
+static const unsigned char caml_jit_bcmp2x86jcc[6] = {
+  JX86_JE,  /* BEQ */
+  JX86_JNE, /* BNEQ */
+  JX86_JG,  /* BLTINT */
+  JX86_JGE, /* BLEINT */
+  JX86_JL,  /* BGTINT */
+  JX86_JLE  /* BGEINT */
+};
+
 
 #ifdef DEBUG
 static long caml_bcodcount = 0;
@@ -549,8 +569,8 @@ static void *caml_jit_compile(code_t pc)
 /* Basic stack operations */
 
     case PUSHACC:
-      instr = ACC0 + *pc++;
-      goto pushaccX;
+      instr = PUSHACC0 + *pc++;
+      /* FALL-THROUGH */
     case PUSHACC1:
     case PUSHACC2:
     case PUSHACC3:
@@ -559,8 +579,21 @@ static void *caml_jit_compile(code_t pc)
     case PUSHACC6:
     case PUSHACC7:
       instr = (instr - PUSHACC0) + ACC0;
-    pushaccX:
       sp -= CAML_JIT_WORD_SIZE;
+      /* [Peephole Optimization] PUSHACCx followed by EQ..GEINT */
+      if (CAML_JIT_GNUC_UNLIKELY (*pc >= EQ && *pc <= GEINT)) {
+        jx86_cmpn_membase_reg(cp, CAML_JIT_NSP, sp + (instr - ACC0) * CAML_JIT_WORD_SIZE, JX86_NAX);
+        op = caml_jit_cmp2x86setcc[*pc++ - EQ];
+        goto cmpint1;
+      }
+      /* [Peephole Optimization] PUSHACCx followed by GETVECTITEM */
+      if (CAML_JIT_GNUC_UNLIKELY (*pc == GETVECTITEM)) {
+        jx86_movn_reg_membase(cp, JX86_NDX, CAML_JIT_NSP, sp + (instr - ACC0) * CAML_JIT_WORD_SIZE);
+      getvectitem_po1:
+        jx86_movn_reg_memindex(cp, JX86_NAX, JX86_NDX, -(CAML_JIT_WORD_SIZE / 2), JX86_NAX, CAML_JIT_WORD_SHIFT - 1);
+        pc++;
+        goto pop1;
+      }
       jx86_movn_membase_reg(cp, CAML_JIT_NSP, sp, JX86_NAX);
       /* FALL-THROUGH */
     case ACC0:
@@ -598,15 +631,19 @@ static void *caml_jit_compile(code_t pc)
 /* Access in heap-allocated environment */
 
     case PUSHENVACC:
-      instr = (ENVACC1 - 1) + *pc++;
-      goto pushenvaccX;
+      instr = (PUSHENVACC1 - 1) + *pc++;
+      /* FALL-THROUGH */
     case PUSHENVACC1:
     case PUSHENVACC2:
     case PUSHENVACC3:
     case PUSHENVACC4:
       instr = (instr - PUSHENVACC1) + ENVACC1;
-    pushenvaccX:
       sp -= CAML_JIT_WORD_SIZE;
+      /* [Peephole Optimization] PUSHENVACCx followed by GETVECTITEM */
+      if (CAML_JIT_GNUC_UNLIKELY (*pc == GETVECTITEM)) {
+        jx86_movn_reg_membase(cp, JX86_NDX, CAML_JIT_NEP, (instr - (ENVACC1 - 1)) * CAML_JIT_WORD_SIZE);
+        goto getvectitem_po1;
+      }
       jx86_movn_membase_reg(cp, CAML_JIT_NSP, sp, JX86_NAX);
       /* FALL-THROUGH */
     case ENVACC1:
@@ -1861,7 +1898,12 @@ static void *caml_jit_compile(code_t pc)
       goto shiftint;
 
     case EQ:
-      op = JX86_SETE;
+    case NEQ:
+    case LTINT:
+    case LEINT:
+    case GTINT:
+    case GEINT:
+      op = caml_jit_cmp2x86setcc[instr - EQ];
     cmpint:
       jx86_cmpn_reg_membase(cp, JX86_NAX, CAML_JIT_NSP, sp);
     cmpint1:
@@ -1882,21 +1924,6 @@ static void *caml_jit_compile(code_t pc)
       }
       else
         goto shl1_or1_pop1;
-    case NEQ:
-      op = JX86_SETNE;
-      goto cmpint;
-    case LTINT:
-      op = JX86_SETL;
-      goto cmpint;
-    case LEINT:
-      op = JX86_SETLE;
-      goto cmpint;
-    case GTINT:
-      op = JX86_SETG;
-      goto cmpint;
-    case GEINT:
-      op = JX86_SETGE;
-      goto cmpint;
     case ULTINT:
       op = JX86_SETB;
       goto cmpint;
@@ -1905,25 +1932,15 @@ static void *caml_jit_compile(code_t pc)
       goto cmpint;
 
     case BEQ:
-      op = JX86_JE;
+    case BNEQ:
+    case BLTINT:
+    case BLEINT:
+    case BGTINT:
+    case BGEINT:
+      op = caml_jit_bcmp2x86jcc[instr - BEQ];
     branchint:
       jx86_cmpn_reg_imm(cp, JX86_NAX, Val_int(*pc++));
       goto branchif1;
-    case BNEQ:
-      op = JX86_JNE;
-      goto branchint;
-    case BLTINT:
-      op = JX86_JG;
-      goto branchint;
-    case BLEINT:
-      op = JX86_JGE;
-      goto branchint;
-    case BGTINT:
-      op = JX86_JL;
-      goto branchint;
-    case BGEINT:
-      op = JX86_JLE;
-      goto branchint;
     case BULTINT:
       op = JX86_JA;
       goto branchint;

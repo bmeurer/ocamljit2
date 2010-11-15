@@ -1910,7 +1910,8 @@ static void *caml_jit_compile(code_t pc)
       jx86_setcc_reg(cp, op, JX86_AL);
     cmpint2:
       jx86_movzxlb_reg_reg(cp, JX86_EAX, JX86_AL);
-      if (*pc == BRANCHIF || *pc == BRANCHIFNOT) {
+      /* [Peephole Optimization] Comparison followed by BRANCHIF/BRANCHIFNOT */
+      if (CAML_JIT_GNUC_LIKELY (*pc == BRANCHIF || *pc == BRANCHIFNOT)) {
         /* leal 1(, %eax, 2), %eax */
         jx86_emit_uint8((cp), 0x8d);
         jx86_emit_address_byte((cp), 0, JX86_EAX, 4);
@@ -1958,8 +1959,20 @@ static void *caml_jit_compile(code_t pc)
 
     case ISINT:
       jx86_andl_reg_imm(cp, JX86_EAX, 1);
-      jx86_shll_reg_imm(cp, JX86_EAX, 1);
-      jx86_orb_reg_imm(cp, JX86_AL, 1);
+      /* [Peephole Optimization] ISINT followed by BRANCHIF/BRANCHIFNOT */
+      if (CAML_JIT_GNUC_LIKELY (*pc == BRANCHIF || *pc == BRANCHIFNOT)) {
+        /* leal 1(, %eax, 2), %eax */
+        jx86_emit_uint8((cp), 0x8d);
+        jx86_emit_address_byte((cp), 0, JX86_EAX, 4);
+        jx86_emit_address_byte((cp), 1, JX86_EAX, 5);
+        jx86_emit_int32((cp), 1);
+        op = (*pc++ == BRANCHIFNOT) ? JX86_JZ : JX86_JNZ;
+        goto branchif1;
+      }
+      else {
+        jx86_shll_reg_imm(cp, JX86_EAX, 1);
+        jx86_orb_reg_imm(cp, JX86_AL, 1);
+      }
       break;
 
 /* Object-oriented operations */

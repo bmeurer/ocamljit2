@@ -747,7 +747,7 @@ typedef enum
     else {                                                      \
       jx86_emit_uint32((cp), 0x000215ff);                       \
       jx86_emit_uint32((cp), 0x08eb0000);                       \
-      jx86_emit_uint64((cp), _addr_);                           \
+      jx86_emit_uint64((cp), (jx86_uintptr_t) _addr_);          \
     }                                                           \
   } while (0)
 
@@ -1175,7 +1175,7 @@ typedef JX86_DECLARE_ENUM_CC(J, 0x70U) jx86_jcc_t;
       else {                                                    \
         jx86_emit_uint16((cp), 0x25ff);                         \
         jx86_emit_int32((cp), 0);                               \
-        jx86_emit_uint64((cp), _addr_);                         \
+        jx86_emit_uint64((cp), (jx86_uintptr_t) _addr_);        \
       }                                                         \
     }                                                           \
   } while (0)
@@ -1600,6 +1600,19 @@ typedef JX86_DECLARE_ENUM_CC(J, 0x70U) jx86_jcc_t;
 /* PUSH instruction
  * ----------------
  */
+
+#define jx86_push_imm(cp, simm)                                 \
+  do {                                                          \
+    const jx86_int32_t _simm_ = (const jx86_int32_t) (disp);    \
+    if (JX86_IS_IMM8(_simm_)) {                                 \
+      jx86_emit_uint8((cp), 0x6a);                              \
+      jx86_emit_int8((cp), _simm_);                             \
+    }                                                           \
+    else {                                                      \
+      jx86_emit_uint8((cp), 0x68);                              \
+      jx86_emit_int32((cp), _simm_);                            \
+    }                                                           \
+  } while (0)
 
 #define jx86_push_membase(cp, breg, disp, size)                 \
   do {                                                          \

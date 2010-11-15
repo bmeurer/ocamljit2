@@ -529,8 +529,8 @@ static void *caml_jit_compile(code_t pc)
       jx86_movl_reg_imm(cp, JX86_EDI, instr);
       jx86_movq_reg_imm(cp, JX86_RSI, pc);
 #else
-      jx86_pushl_imm(cp, instr);
-      jx86_pushl_imm(cp, pc);
+      jx86_push_imm(cp, instr);
+      jx86_push_imm(cp, pc);
 #endif
       jx86_call(cp, caml_jit_rt_trace);
 
@@ -1041,8 +1041,8 @@ static void *caml_jit_compile(code_t pc)
           sp = 0;
         }
         /* allocate space in the major heap */
-        jx86_pushl_imm(cp, tag);
-        jx86_pushl_imm(cp, wosize);
+        jx86_push_imm(cp, tag);
+        jx86_push_imm(cp, wosize);
         jx86_call(cp, &caml_alloc_shr);
         /* initialize the block */
         jx86_movl_membase_imm(cp, JX86_ESP, 1 * CAML_JIT_WORD_SIZE, wosize);
@@ -1096,9 +1096,10 @@ static void *caml_jit_compile(code_t pc)
         jx86_call(cp, &caml_alloc_shr);
 #else
         /* allocate space in the major heap */
-        jx86_pushl_imm(cp, Double_array_tag);
-        jx86_pushl_imm(cp, wosize);
+        jx86_push_imm(cp, Double_array_tag);
+        jx86_push_imm(cp, wosize);
         jx86_call(cp, &caml_alloc_shr);
+        jx86_addn_reg_imm(cp, JX86_ESP, 2 * CAML_JIT_WORD_SIZE);
 #endif
         /* flush the stack pointer */
         if (sp != 0) {

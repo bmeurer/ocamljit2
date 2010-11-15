@@ -1701,8 +1701,8 @@ static void *caml_jit_compile(code_t pc)
           sp = 0;
         }
         /* arguments are stack pointer and num_args */
-        jx86_pushl_imm(cp, num_args);
-        jx86_pushl_reg(cp, CAML_JIT_NSP);
+        jx86_push_imm(cp, num_args);
+        jx86_push_reg(cp, CAML_JIT_NSP);
         /* reserve space for the environment pointer */
         sp -= CAML_JIT_WORD_SIZE;
       }
@@ -1953,8 +1953,8 @@ static void *caml_jit_compile(code_t pc)
       sp -= CAML_JIT_WORD_SIZE;
       jx86_movn_membase_reg(cp, CAML_JIT_NSP, sp, JX86_NAX);
 #ifdef TARGET_i386
-      jx86_pushl_imm(cp, pc);
-      jx86_pushl_imm(cp, tag);
+      jx86_push_imm(cp, pc);
+      jx86_push_imm(cp, tag);
       jx86_pushl_reg(cp, JX86_EAX);
 #else
       jx86_movq_reg_membase(cp, JX86_RDI, JX86_RAX, 0);

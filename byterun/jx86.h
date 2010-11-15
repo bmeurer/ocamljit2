@@ -1603,7 +1603,7 @@ typedef JX86_DECLARE_ENUM_CC(J, 0x70U) jx86_jcc_t;
 
 #define jx86_push_imm(cp, simm)                                 \
   do {                                                          \
-    const jx86_int32_t _simm_ = (const jx86_int32_t) (disp);    \
+    const jx86_int32_t _simm_ = (const jx86_int32_t) (simm);    \
     if (JX86_IS_IMM8(_simm_)) {                                 \
       jx86_emit_uint8((cp), 0x6a);                              \
       jx86_emit_int8((cp), _simm_);                             \

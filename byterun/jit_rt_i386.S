@@ -26,7 +26,7 @@
 #if defined(SYS_solaris)
 #define CONCAT(a,b) a/**/b
 #else
-#define CONCAT(a,b) a##a
+#define CONCAT(a,b) a##b
 #endif
 
 #if defined(SYS_linux_elf) || defined(SYS_bsd_elf) || defined(SYS_solaris) || defined(SYS_beos) || defined(SYS_gnu)
@@ -67,7 +67,7 @@
 	 * return %edi points to the header of the newly allocated
 	 * block.
 	 */
-L(caml_jit_rt_alloc1_gc)        
+L(caml_jit_rt_alloc1_gc):
         addl    $(2*4), %edi
         call    L(caml_jit_rt_call_gc)
 FUNCTION(G(caml_jit_rt_alloc1))
@@ -144,7 +144,7 @@ L(caml_jit_rt_call_gc):
         movl    %eax, -2*4(%esi)
     /* Make the young and stack pointers available to the C code */
         movl    %edi, G(caml_young_ptr)
-        leal    -2*8(%esi), %ecx
+        leal    -2*4(%esi), %ecx
         movl    %ecx, G(caml_extern_sp)
     /* Invoke the garbage collector */
         call    G(caml_minor_collection)
@@ -177,14 +177,14 @@ FUNCTION(G(caml_jit_rt_grab_closure_and_return))
         pushl   %edi
     /* Store the closure header (%ebx << 10 | Closure_tag | Caml_black) */
         shll    $10, %ebx
-        orl     $1015, %ebx
+        orl     $((3 << 8) | 247), %ebx
         movl    %ebx, 0*4(%edi)
     /* Store the restart function pointer */
         movl    %eax, 1*4(%edi)
     /* Store the environment pointer */
         movl    %ebp, 2*4(%edi)
     /* Move the arguments from the stack to the closure */
-        addq    $(3*4), %edi
+        addl    $(3*4), %edi
         rep movsl
     /* Restore young pointer */
         popl    %edi
@@ -253,7 +253,7 @@ FUNCTION(G(caml_jit_rt_restart))
         popl    %esi
         popl    %edi
     /* Load the new environment pointer */
-        movq    1*4(%ebp), %ebp
+        movl    1*4(%ebp), %ebp
         ret
 
         
@@ -348,10 +348,10 @@ L(caml_jit_rt_apply_realloc_stack):
         call    G(caml_realloc_stack)
         addl    $(1*4), %esp
     /* Restore stack pointer */
-        movl    G(caml_extern_sp), %esp
+        movl    G(caml_extern_sp), %esi
     /* Restore closure in %eax and closure address in %ecx */
         movl    %ebp, %eax
-        movl    0*8(%ebp), %ecx
+        movl    0*4(%ebp), %ecx
         jmp     L(caml_jit_rt_apply_check_signals)
 
 
@@ -529,7 +529,7 @@ L(caml_jit_rt_start_caught):
         movl    G(caml_extern_sp), %esi
         movl    G(caml_young_ptr), %edi
     /* Restore the local roots to its initial state */
-        movl    2*8(%esp), %ecx
+        movl    2*4(%esp), %ecx
         movl    %ecx, G(caml_local_roots)
     /* Load the exception object */
         movl    G(caml_exn_bucket), %eax
@@ -569,8 +569,8 @@ L(caml_jit_rt_stop):
 
 FUNCTION(G(caml_jit_rt_copy_double))
 L(caml_jit_rt_copy_double):
-        call    L(caml_jit_rt_alloc1)
-        movl    $((1 << 10) | (3 << 8) | 256), 0*4(%edi)
+        call    L(caml_jit_rt_alloc2)
+        movl    $((2 << 10) | (3 << 8) | 253), 0*4(%edi)
         movlpd  %xmm0, 1*4(%edi)
         leal    1*4(%edi), %eax
         ret
@@ -640,7 +640,7 @@ FUNCTION(G(caml_jit_rt_div_float))
 	 * the double array at %edx. %ecx is assumed to be
 	 * non-zero.
 	 *
-	 * Upon return, %esi will be incremented by %ecx*8.
+	 * Upon return, %esi will be incremented by %ecx*4.
 	 *
 	 * Clobbers %ecx, %edx and %xmm0.
 	 */
@@ -652,7 +652,7 @@ L(caml_jit_rt_copy_floats_1):
         movlpd  0*8(%eax), %xmm0
         movlpd  %xmm0, 0*8(%edx)
         leal    1*4(%esi), %esi
-        leal    1*4(%edx), %edx
+        leal    1*8(%edx), %edx
         jnz     L(caml_jit_rt_copy_floats_1)
         popl    %eax
         ret
@@ -694,13 +694,15 @@ FUNCTION(G(caml_jit_rt_trace))
         movl    %edi, G(caml_young_ptr)
     /* Setup the trace parameters */
         pushl   %esi            /* sp */
-        pushl   %ebp            /* env */
+        pushl   0*4(%ebp)       /* env */
         pushl   %ebx            /* extra args */
         pushl   %eax            /* accu */
         pushl   2*4(%ebp)       /* pc */
         pushl   3*4(%ebp)       /* instr */
     /* Invoke the trace function */
         call    G(caml_jit_trace)
+    /* Pop the parameters off the C stack */
+        addl    $(6*4), %esp
     /* Restore floating-point registers */
         movlpd  7*8(%esp), %xmm7
         movlpd  6*8(%esp), %xmm6

@@ -255,7 +255,7 @@ FUNCTION(G(caml_jit_rt_grab_closure_and_return))
         movq    %r14, %rsi
     /* Store the closure header (%r13 << 10 | Closure_tag | Caml_black) */
         shlq    $10, %r13
-        orq     $1015, %r13
+        orq     $((3 << 8) | 247), %r13
         movq    %r13, 0*8(%r15)
     /* Store the restart function pointer */
         movq    %rax, 1*8(%r15)
@@ -650,7 +650,7 @@ FUNCTION(G(caml_jit_rt_stop))
 FUNCTION(G(caml_jit_rt_copy_double))
 .Lcaml_jit_rt_copy_double:
         call    .Lcaml_jit_rt_alloc1
-        movq    $((1 << 10) | (3 << 8) | 256), 0*8(%r15)
+        movq    $((1 << 10) | (3 << 8) | 253), 0*8(%r15)
         movlpd  %xmm0, 1*8(%r15)
         leaq    1*8(%r15), %rax
         ret

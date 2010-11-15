@@ -1251,7 +1251,7 @@ typedef JX86_DECLARE_ENUM_CC(J, 0x70U) jx86_jcc_t;
  */
 
 #ifdef JX86_64
-# define jx86_leaq_reg_forward(cp, dreg)                         \
+# define jx86_lean_reg_forward(cp, dreg)                         \
   do {                                                           \
     const jx86_reg_t _dreg_ = (const jx86_reg_t) (dreg);         \
     jx86_emit_rex((cp), 8, _dreg_, 0, 0);                        \
@@ -1260,13 +1260,27 @@ typedef JX86_DECLARE_ENUM_CC(J, 0x70U) jx86_jcc_t;
     (cp) += sizeof(jx86_int32_t);                                \
   } while (0)
 
-# define jx86_leaq_reg_patch(cp, lcp)                            \
+# define jx86_lean_reg_patch(cp, lcp)                            \
   do {                                                           \
     jx86_uint8_t *_lcp_ = (jx86_uint8_t *) (lcp);                \
     const jx86_intptr_t _rel_ = (cp) - _lcp_ - 7;                \
     jx86_assert(JX86_IS_IMM32(_rel_));                           \
     jx86_assert(_lcp_[1] == 0x8d);                               \
     *((jx86_int32_t *) (_lcp_ + 3)) = _rel_;                     \
+  } while (0)
+#else
+# define jx86_lean_reg_forward(cp, dreg)                         \
+  do {                                                           \
+    const jx86_reg_t _dreg_ = (const jx86_reg_t) (dreg);         \
+    jx86_emit_uint8((cp), 0xb8 + JX86_REG_CODE(_dreg_));         \
+    (cp) += sizeof(jx86_int32_t);                                \
+  } while (0)
+
+# define jx86_lean_reg_patch(cp, lcp)                            \
+  do {                                                           \
+    jx86_uint8_t *_lcp_ = (jx86_uint8_t *) (lcp);                \
+    jx86_assert(_lcp_[0] >= 0xb8 && _lcp_[0] <= 0xbf);           \
+    *((jx86_uint32_t *) (_lcp_ + 1)) = (jx86_uint32_t) (cp);     \
   } while (0)
 #endif /* JX86_64 */
 

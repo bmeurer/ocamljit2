@@ -519,17 +519,22 @@ void caml_initialize (value *fp, value val)
 value * caml_initialize_n (value *fp, value *vp, mlsize_t n)
 {
   value *bp = fp;
-  const int fp_in_heap = Is_in_heap (fp);
 
-  for (; n != 0; --n, ++fp, ++vp) {
-    const value val = *vp;
-    *fp = val;
-    if (Is_block (val) && Is_young (val) && fp_in_heap) {
-      if (caml_ref_table.ptr >= caml_ref_table.limit) {
-        caml_realloc_ref_table (&caml_ref_table);
+  if (Is_in_heap (fp)) {
+    for (; n != 0; --n, ++fp, ++vp) {
+      const value val = *vp;
+      *fp = val;
+      if (Is_block (val) && Is_young (val)) {
+        if (caml_ref_table.ptr >= caml_ref_table.limit) {
+          caml_realloc_ref_table (&caml_ref_table);
+        }
+        *caml_ref_table.ptr++ = fp;
       }
-      *caml_ref_table.ptr++ = fp;
     }
+  }
+  else {
+    for (; n != 0; --n, ++fp, ++vp)
+      *fp = *vp;
   }
 
   return bp;

@@ -1505,8 +1505,13 @@ static void *caml_jit_compile(code_t pc)
        */
       *(pc - 1) = RAISE;
 
+#ifdef TARGET_amd64
       /* load %rsi with pc */
       jx86_movq_reg_imm(cp, JX86_RSI, pc);
+#else
+      /* store pc to saved_pc */
+      jx86_movl_membase_imm(cp, JX86_ESP, 0, pc);
+#endif
 
       /* throw the exception in %rax back to C code */
       addr = &caml_jit_rt_raise;
@@ -1521,7 +1526,7 @@ static void *caml_jit_compile(code_t pc)
     case C_CALL1:
       addr = Primitive(*pc++);
       if (addr == &caml_sqrt_float) {
-        jx86_sqrtsd_xmm_membase(cp, JX86_XMM0, JX86_RAX, 0);
+        jx86_sqrtsd_xmm_membase(cp, JX86_XMM0, JX86_NAX, 0);
         addr = &caml_jit_rt_copy_double;
         goto c_call_float1;
       }
@@ -1533,10 +1538,10 @@ static void *caml_jit_compile(code_t pc)
       if (addr == &caml_add_float) {
         addr = &caml_jit_rt_add_float;
       c_call_float2:
-        sp += 8;
+        sp += CAML_JIT_WORD_SIZE;
       c_call_float1:
         if (sp != 0) {
-          jx86_leaq_reg_membase(cp, JX86_R14, JX86_R14, sp);
+          jx86_addn_reg_imm(cp, CAML_JIT_NSP, sp);
           sp = 0;
         }
         jx86_call(cp, addr);
@@ -1555,9 +1560,9 @@ static void *caml_jit_compile(code_t pc)
         goto c_call_float2;
       }
       else if (addr == &caml_eq_float) {
-        jx86_movq_reg_membase(cp, JX86_RSI, JX86_R14, sp);
-        jx86_movlpd_xmm_membase(cp, JX86_XMM0, JX86_RAX, 0);
-        jx86_ucomisd_xmm_membase(cp, JX86_XMM0, JX86_RSI, 0);
+        jx86_movn_reg_membase(cp, JX86_NCX, CAML_JIT_NSP, sp);
+        jx86_movlpd_xmm_membase(cp, JX86_XMM0, JX86_NAX, 0);
+        jx86_ucomisd_xmm_membase(cp, JX86_XMM0, JX86_NCX, 0);
         jx86_sete_reg(cp, JX86_AL);
         jx86_setnp_reg(cp, JX86_DL);
         jx86_andb_reg_reg(cp, JX86_AL, JX86_DL);
@@ -1565,9 +1570,9 @@ static void *caml_jit_compile(code_t pc)
         goto cmpint2;
       }
       else if (addr == &caml_neq_float) {
-        jx86_movq_reg_membase(cp, JX86_RSI, JX86_R14, sp);
-        jx86_movlpd_xmm_membase(cp, JX86_XMM0, JX86_RAX, 0);
-        jx86_ucomisd_xmm_membase(cp, JX86_XMM0, JX86_RSI, 0);
+        jx86_movn_reg_membase(cp, JX86_NCX, CAML_JIT_NSP, sp);
+        jx86_movlpd_xmm_membase(cp, JX86_XMM0, JX86_NAX, 0);
+        jx86_ucomisd_xmm_membase(cp, JX86_XMM0, JX86_NCX, 0);
         jx86_setne_reg(cp, JX86_AL);
         jx86_setp_reg(cp, JX86_DL);
         jx86_orb_reg_reg(cp, JX86_AL, JX86_DL);
@@ -1577,9 +1582,9 @@ static void *caml_jit_compile(code_t pc)
       else if (addr == &caml_le_float) {
         op = JX86_SETAE;
       cmpfloat_rev:
-        jx86_movq_reg_membase(cp, JX86_RSI, JX86_R14, sp);
-        jx86_movlpd_xmm_membase(cp, JX86_XMM0, JX86_RSI, 0);
-        jx86_ucomisd_xmm_membase(cp, JX86_XMM0, JX86_RAX, 0);
+        jx86_movn_reg_membase(cp, JX86_NCX, CAML_JIT_NSP, sp);
+        jx86_movlpd_xmm_membase(cp, JX86_XMM0, JX86_NCX, 0);
+        jx86_ucomisd_xmm_membase(cp, JX86_XMM0, JX86_NAX, 0);
         goto cmpint1;
       }
       else if (addr == &caml_lt_float) {
@@ -1589,9 +1594,9 @@ static void *caml_jit_compile(code_t pc)
       else if (addr == &caml_ge_float) {
         op = JX86_SETAE;
       cmpfloat:
-        jx86_movq_reg_membase(cp, JX86_RSI, JX86_R14, sp);
-        jx86_movlpd_xmm_membase(cp, JX86_XMM0, JX86_RAX, 0);
-        jx86_ucomisd_xmm_membase(cp, JX86_XMM0, JX86_RSI, 0);
+        jx86_movn_reg_membase(cp, JX86_NCX, CAML_JIT_NSP, sp);
+        jx86_movlpd_xmm_membase(cp, JX86_XMM0, JX86_NAX, 0);
+        jx86_ucomisd_xmm_membase(cp, JX86_XMM0, JX86_NCX, 0);
         goto cmpint1;
       }
       else if (addr == &caml_gt_float) {
@@ -1599,9 +1604,8 @@ static void *caml_jit_compile(code_t pc)
         goto cmpfloat;
       }
       else if (addr == &caml_array_unsafe_get_float) {
-        jx86_movq_reg_membase(cp, JX86_RSI, JX86_R14, sp); sp += 8;
-        jx86_leaq_reg_memindex(cp, JX86_RSI, JX86_RAX, -4, JX86_RSI, 2);
-        jx86_movlpd_xmm_membase(cp, JX86_XMM0, JX86_RSI, 0);
+        jx86_movn_reg_membase(cp, JX86_NCX, CAML_JIT_NSP, sp); sp += CAML_JIT_WORD_SIZE;
+        jx86_movlpd_xmm_memindex(cp, JX86_XMM0, JX86_NAX, -(CAML_JIT_WORD_SIZE / 2), JX86_NCX, CAML_JIT_WORD_SHIFT - 1);
         goto copy_double;
       }
       else {
@@ -1610,11 +1614,10 @@ static void *caml_jit_compile(code_t pc)
     case C_CALL3:
       addr = Primitive(*pc++);
       if (addr == &caml_array_unsafe_set_float) {
-        jx86_movq_reg_membase(cp, JX86_RDI, JX86_R14, sp); sp += 8;
-        jx86_movq_reg_membase(cp, JX86_RSI, JX86_R14, sp); sp += 8;
-        jx86_leaq_reg_memindex(cp, JX86_RDI, JX86_RAX, -4, JX86_RDI, 2);
-        jx86_movlpd_xmm_membase(cp, JX86_XMM0, JX86_RSI, 0);
-        jx86_movlpd_membase_xmm(cp, JX86_RDI, 0, JX86_XMM0);
+        jx86_movn_reg_membase(cp, JX86_NCX, CAML_JIT_NSP, sp); sp += CAML_JIT_WORD_SIZE;
+        jx86_movn_reg_membase(cp, JX86_NDX, CAML_JIT_NSP, sp); sp += CAML_JIT_WORD_SIZE;
+        jx86_movlpd_xmm_membase(cp, JX86_XMM0, JX86_NDX, 0);
+        jx86_movlpd_memindex_xmm(cp, JX86_NAX, -(CAML_JIT_WORD_SIZE / 2), JX86_NCX, CAML_JIT_WORD_SHIFT - 1, JX86_XMM0);
         goto unit;
       }
       else {
@@ -1625,71 +1628,115 @@ static void *caml_jit_compile(code_t pc)
       addr = Primitive(*pc++);
     c_call: {
       int num_args = instr - (C_CALL1 - 1);
-
+#ifdef TARGET_amd64
       /* load %rbp with the address of caml_young_ptr */
       jx86_movq_reg_imm(cp, JX86_RBP, &caml_young_ptr);
-      
       /* load %rbx with the address of caml_extern_sp */
       jx86_movq_reg_imm(cp, JX86_RBX, &caml_extern_sp);
-
       /* call semantics differ if num_args <= 5 */
       if (num_args <= 5) {
         /* setup up to five arguments */
         jx86_movq_reg_reg(cp, JX86_RDI, JX86_RAX);
-        if (num_args >= 2) { jx86_movq_reg_membase(cp, JX86_RSI, JX86_R14, sp); sp += 8; }
-        if (num_args >= 3) { jx86_movq_reg_membase(cp, JX86_RDX, JX86_R14, sp); sp += 8; }
-        if (num_args >= 4) { jx86_movq_reg_membase(cp, JX86_RCX, JX86_R14, sp); sp += 8; }
-        if (num_args == 5) { jx86_movq_reg_membase(cp, JX86_R8,  JX86_R14, sp); sp += 8; }
-
+        if (num_args >= 2) { jx86_movq_reg_membase(cp, JX86_RSI, CAML_JIT_NSP, sp); sp += CAML_JIT_WORD_SIZE; }
+        if (num_args >= 3) { jx86_movq_reg_membase(cp, JX86_RDX, CAML_JIT_NSP, sp); sp += CAML_JIT_WORD_SIZE; }
+        if (num_args >= 4) { jx86_movq_reg_membase(cp, JX86_RCX, CAML_JIT_NSP, sp); sp += CAML_JIT_WORD_SIZE; }
+        if (num_args == 5) { jx86_movq_reg_membase(cp, JX86_R8,  CAML_JIT_NSP, sp); sp += CAML_JIT_WORD_SIZE; }
         /* reserve stack space for the environment pointer */
-        sp -= 8;
+        sp -= CAML_JIT_WORD_SIZE;
       }
       else {
         /* arguments are stack pointer and num_args */
-        sp -= 2 * 8;
+        sp -= CAML_JIT_WORD_SIZE;
         jx86_movl_reg_imm(cp, JX86_ESI, num_args);
-        jx86_movq_membase_reg(cp, JX86_R14, sp + 1 * 8, JX86_RAX);
-        jx86_leaq_reg_membase(cp, JX86_RDI, JX86_R14, sp + 1 * 8);
+        jx86_movq_membase_reg(cp, CAML_JIT_NSP, sp, JX86_RAX);
+        jx86_leaq_reg_membase(cp, JX86_RDI, CAML_JIT_NSP, sp);
+        sp -= CAML_JIT_WORD_SIZE;
       }
-
       /* flush the stack pointer */
       if (sp != 0) {
-        jx86_leaq_reg_membase(cp, JX86_R14, JX86_R14, sp);
+        jx86_addn_reg_imm(cp, CAML_JIT_NSP, sp);
         sp = 0;
       }
-
+      /* make sure reasonable code space is available */
       if (CAML_JIT_GNUC_UNLIKELY (cp > segment->segment_limit))
         cp = caml_jit_segment_continue(segment, cp);
-
       /* save environment pointer */
-      jx86_movq_membase_reg(cp, JX86_R14, sp, JX86_R12);
-
+      jx86_movq_membase_reg(cp, CAML_JIT_NSP, 0, CAML_JIT_NEP);
       /* save young ptr to caml_young_ptr */
-      jx86_movq_membase_reg(cp, JX86_RBP, 0, JX86_R15);
-
+      jx86_movq_membase_reg(cp, JX86_RBP, 0, CAML_JIT_NYP);
       /* save stack pointer to caml_extern_sp */
-      jx86_movq_membase_reg(cp, JX86_RBX, 0, JX86_R14);
-
+      jx86_movq_membase_reg(cp, JX86_RBX, 0, CAML_JIT_NSP);
       /* save the pc to the reserved saved_pc area 0*8(%rsp) */
       jx86_movq_reg_imm(cp, JX86_R11, pc + 1);
       jx86_movq_membase_reg(cp, JX86_RSP, 0 * 8, JX86_R11);
-
       /* call the primitive C function */
       jx86_call(cp, addr);
-
       /* reset saved_pc area 0*8(%rsp) */
       jx86_movq_membase_imm(cp, JX86_RSP, 0 * 8, 0);
-
       /* restore local state */
-      jx86_movq_reg_membase(cp, JX86_R15, JX86_RBP, 0);
-      jx86_movq_reg_membase(cp, JX86_R14, JX86_RBX, 0);
-      jx86_movq_reg_membase(cp, JX86_R12, JX86_R14, 0);
-
+      jx86_movq_reg_membase(cp, CAML_JIT_NYP, JX86_RBP, 0);
+      jx86_movq_reg_membase(cp, CAML_JIT_NSP, JX86_RBX, 0);
+      jx86_movq_reg_membase(cp, CAML_JIT_NEP, CAML_JIT_NSP, 0);
+#else
+      /* save the pc to the reserved saved_pc area 0*4(%esp) */
+      jx86_movl_membase_imm(cp, JX86_ESP, 0 * 4, pc + 1);
+      /* call semantics differ if num_args <= 5 */
+      if (num_args <= 5) {
+        int i;
+        /* setup up to five arguments */
+        for (i = num_args; --i > 1; )
+          jx86_pushl_membase(cp, CAML_JIT_NSP, sp + i * CAML_JIT_WORD_SIZE);
+        jx86_pushl_reg(cp, JX86_EAX);
+        /* pop stack arguments and reserve space for env */
+        sp += (num_args - 2) * CAML_JIT_WORD_SIZE;
+      }
+      else {
+        /* push accu onto Caml stack */
+        sp -= CAML_JIT_WORD_SIZE;
+        jx86_movl_membase_reg(cp, CAML_JIT_NSP, sp, JX86_EAX);
+        /* flush the stack pointer */
+        if (sp != 0) {
+          jx86_addn_reg_imm(cp, CAML_JIT_NSP, sp);
+          sp = 0;
+        }
+        /* arguments are stack pointer and num_args */
+        jx86_pushl_imm(cp, num_args);
+        jx86_pushl_reg(cp, CAML_JIT_NSP);
+        /* reserve space for the environment pointer */
+        sp -= CAML_JIT_WORD_SIZE;
+      }
+      /* flush the stack pointer */
+      if (sp != 0) {
+        jx86_addn_reg_imm(cp, CAML_JIT_NSP, sp);
+        sp = 0;
+      }
+      /* make sure reasonable code space is available */
+      if (CAML_JIT_GNUC_UNLIKELY (cp > segment->segment_limit))
+        cp = caml_jit_segment_continue(segment, cp);
+      /* save environment pointer */
+      jx86_movn_membase_reg(cp, CAML_JIT_NSP, 0, CAML_JIT_NEP);
+      /* make stack and young pointer available to C code */
+      jx86_movl_mem_reg(cp, &caml_extern_sp, CAML_JIT_NSP);
+      jx86_movl_mem_reg(cp, &caml_young_ptr, CAML_JIT_NYP);
+      /* call the primitive C function */
+      jx86_call(cp, addr);
+      /* pop C stack arguments */
+      if (num_args > 5)
+        jx86_addn_reg_imm(cp, JX86_ESP, 2 * CAML_JIT_WORD_SIZE);
+      else
+        jx86_addn_reg_imm(cp, JX86_ESP, num_args * CAML_JIT_WORD_SIZE);
+      /* reset saved_pc area 0*4(%esp) */
+      jx86_movl_membase_imm(cp, JX86_ESP, 0 * 4, 0);
+      /* restore stack, young and environment pointer */
+      jx86_movl_reg_mem(cp, CAML_JIT_NSP, &caml_extern_sp);
+      jx86_movl_reg_mem(cp, CAML_JIT_NYP, &caml_young_ptr);
+      jx86_movl_reg_membase(cp, CAML_JIT_NEP, CAML_JIT_NSP, 0);
+#endif
       /* pop arguments/environment pointer off the stack */
       if (num_args > 5)
-        sp += (num_args + 1) * 8;
+        sp += (num_args + 1) * CAML_JIT_WORD_SIZE;
       else
-        sp += 1 * 8;
+        sp += 1 * CAML_JIT_WORD_SIZE;
       break;
     }
 
@@ -1748,7 +1795,7 @@ static void *caml_jit_compile(code_t pc)
     case DIVINT:
     case MODINT:
       /* load the operands */
-      jx86_movn_reg_membase(cp, JX86_RCX, CAML_JIT_NSP, sp); sp += CAML_JIT_WORD_SIZE;
+      jx86_movn_reg_membase(cp, JX86_NCX, CAML_JIT_NSP, sp); sp += CAML_JIT_WORD_SIZE;
       jx86_sarn_reg_imm(cp, JX86_NAX, 1);
       jx86_sarn_reg_imm(cp, JX86_NCX, 1);
 #ifdef TARGET_amd64

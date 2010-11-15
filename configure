@@ -809,7 +809,7 @@ esac
 
 # Check if we can build the JIT engine
 case "$arch,$system" in
-  amd64,bsd|amd64,linux|amd64,macosx)
+  amd64,bsd|amd64,linux|amd64,macosx|i386,bsd|i386,linux*)
     jit_enabled="true"
     echo "JIT engine enabled."
     ;;

@@ -1072,16 +1072,16 @@ static void *caml_jit_compile(code_t pc)
         jx86_lean_reg_membase(cp, JX86_NAX, CAML_JIT_NYP, 1 * CAML_JIT_WORD_SIZE);
         wosize -= Double_wosize;
         if (wosize == 2 * Double_wosize) {
-          jx86_movq_reg_membase(cp, JX86_R10, CAML_JIT_NSP, sp); sp += CAML_JIT_WORD_SIZE;
-          jx86_movq_reg_membase(cp, JX86_R11, CAML_JIT_NSP, sp); sp += CAML_JIT_WORD_SIZE;
-          jx86_movlpd_xmm_membase(cp, JX86_XMM0, JX86_R10, 0);
-          jx86_movlpd_xmm_membase(cp, JX86_XMM1, JX86_R11, 0);
-          jx86_movlpd_membase_xmm(cp, JX86_RAX, 1 * sizeof(double), JX86_XMM0);
-          jx86_movlpd_membase_xmm(cp, JX86_RAX, 2 * sizeof(double), JX86_XMM1);
+          jx86_movn_reg_membase(cp, JX86_NCX, CAML_JIT_NSP, sp); sp += CAML_JIT_WORD_SIZE;
+          jx86_movn_reg_membase(cp, JX86_NDX, CAML_JIT_NSP, sp); sp += CAML_JIT_WORD_SIZE;
+          jx86_movlpd_xmm_membase(cp, JX86_XMM0, JX86_NCX, 0);
+          jx86_movlpd_xmm_membase(cp, JX86_XMM1, JX86_NDX, 0);
+          jx86_movlpd_membase_xmm(cp, JX86_NAX, 1 * sizeof(double), JX86_XMM0);
+          jx86_movlpd_membase_xmm(cp, JX86_NAX, 2 * sizeof(double), JX86_XMM1);
         }
         else if (wosize != 0) {
-          jx86_movq_reg_imm(cp, JX86_RCX, wosize / Double_wosize);
-          jx86_leaq_reg_membase(cp, JX86_RDX, CAML_JIT_NYP, 2 * CAML_JIT_WORD_SIZE);
+          jx86_movn_reg_imm(cp, JX86_NCX, wosize / Double_wosize);
+          jx86_lean_reg_membase(cp, JX86_NDX, CAML_JIT_NYP, 2 * CAML_JIT_WORD_SIZE);
           jx86_call(cp, &caml_jit_rt_copy_floats);
         }
       }
@@ -1807,7 +1807,7 @@ static void *caml_jit_compile(code_t pc)
       /* save effective pc to saved_pc (for the exception case) */
       jx86_movl_membase_imm(cp, JX86_ESP, 0 * CAML_JIT_WORD_SIZE, pc + 2);
       /* %edx:%eax <- sign-extend of %eax */
-      jx86_cqd(cp);
+      jx86_cdq(cp);
 #endif
       /* flush the stack pointer */  
       if (sp != 0) {

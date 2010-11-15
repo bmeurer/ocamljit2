@@ -32,17 +32,18 @@
 /* Native types
  * ------------
  */
-typedef signed char    jx86_int8_t;
-typedef unsigned char  jx86_uint8_t;
-typedef signed short   jx86_int16_t;
-typedef unsigned short jx86_uint16_t;
-typedef signed int     jx86_int32_t;
-typedef unsigned int   jx86_uint32_t;
-#ifdef __LP64__
-typedef signed long    jx86_int64_t;
-typedef unsigned long  jx86_uint64_t;
+typedef signed char        jx86_int8_t;
+typedef unsigned char      jx86_uint8_t;
+typedef signed short       jx86_int16_t;
+typedef unsigned short     jx86_uint16_t;
+typedef signed int         jx86_int32_t;
+typedef unsigned int       jx86_uint32_t;
+#ifdef JX86_64
+typedef signed long        jx86_int64_t;
+typedef unsigned long      jx86_uint64_t;
 #else
-# error "Unsupported system"
+typedef signed long long   jx86_int64_t;
+typedef unsigned long long jx86_uint64_t;
 #endif
 #ifdef JX86_64
 typedef jx86_int64_t  jx86_intptr_t;

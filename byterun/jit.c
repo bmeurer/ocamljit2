@@ -196,6 +196,9 @@ void caml_jit_init()
 {
   unsigned char *bp;
   unsigned char *cp;
+#ifdef TARGET_i386
+  unsigned int eax, edx;
+#endif
 
   /* check if already initialized */
   if (caml_jit_code_base != NULL)
@@ -203,6 +206,20 @@ void caml_jit_init()
 
   /* the JIT engine is incompatible with ocamldebug */
   caml_jit_enabled = (getenv("CAML_DEBUG_SOCKET") == NULL);
+
+  /* we need a SSE2 capable CPU */
+#ifdef TARGET_i386
+  if (CAML_JIT_GNUC_LIKELY (caml_jit_enabled)) {
+    __asm__ __volatile__("pushl %%ebx; cpuid; popl %%ebx"
+                         : "=a"(eax), "=d"(edx)
+                         : "a"(0x00000001u)
+                         : "ecx");
+    if (CAML_JIT_GNUC_UNLIKELY ((edx & 0x04000000) == 0))
+      caml_jit_enabled = 0;
+  }
+#endif
+
+  /* check if JIT is enabled */
   if (CAML_JIT_GNUC_UNLIKELY (!caml_jit_enabled))
     return;
 

@@ -131,84 +131,16 @@
 
 /* Allocation */
 
-        /* caml_jit_rt_alloc1:
-	 *
-	 * Allocates a block of wosize 1 in the minor heap. Upon
-	 * return %r15 points to the header of the newly allocated
-	 * block.
-	 */
-.Lcaml_jit_rt_alloc1_gc:
-        addq    $(2*8), %r15
-        call    .Lcaml_jit_rt_call_gc
-FUNCTION(G(caml_jit_rt_alloc1))
-.Lcaml_jit_rt_alloc1:
-        subq    $(2*8), %r15
-        CMP_VAR(caml_young_limit, %r15)
-        jb      .Lcaml_jit_rt_alloc1_gc
-        ret
-
-        /* caml_jit_rt_alloc2:
-	 *
-	 * Allocates a block of wosize 2 in the minor heap. Upon
-	 * return %r15 points to the header of the newly allocated
-	 * block.
-	 */
-.Lcaml_jit_rt_alloc2_gc:
-        addq    $(3*8), %r15
-        call    .Lcaml_jit_rt_call_gc
-FUNCTION(G(caml_jit_rt_alloc2))
-.Lcaml_jit_rt_alloc2:
-        subq    $(3*8), %r15
-        CMP_VAR(caml_young_limit, %r15)
-        jb      .Lcaml_jit_rt_alloc2_gc
-        ret
-
-        /* caml_jit_rt_alloc3:
-	 *
-	 * Allocates a block of wosize 3 in the minor heap. Upon
-	 * return %r15 points to the header of the newly allocated
-	 * block.
-	 */
-.Lcaml_jit_rt_alloc3_gc:
-        addq    $(4*8), %r15
-        call    .Lcaml_jit_rt_call_gc
-FUNCTION(G(caml_jit_rt_alloc3))
-.Lcaml_jit_rt_alloc3:
-        subq    $(4*8), %r15
-        CMP_VAR(caml_young_limit, %r15)
-        jb      .Lcaml_jit_rt_alloc3_gc
-        ret
-
-        /* caml_jit_rt_allocN:
-	 *
-	 * Allocates a block of bhsize %rdx in the minor heap.
-	 * Upon return %r15 points to the header of the newly
-	 * allocated block.
-	 */
-.Lcaml_jit_rt_allocN_gc:        
-        pushq   %rdx                    /* preserve desired size */
-        addq    %rdx, %r15
-        call    .Lcaml_jit_rt_call_gc
-        popq    %rdx                    /* recover desired size */
-FUNCTION(G(caml_jit_rt_allocN))
-.Lcaml_jit_rt_allocN:
-        subq    %rdx, %r15
-        CMP_VAR(caml_young_limit, %r15)
-        jb      .Lcaml_jit_rt_allocN_gc
-        ret
-
         /* caml_jit_rt_call_gc:
 	 *
 	 * Invoked by the caml_jit_rt_allocX functions above when
 	 * the minor heap runs out of space.
 	 *
-	 * Preserves %rdi, %rsi, %xmm0.
+	 * Preserves %xmm0.
          */
 FUNCTION(G(caml_jit_rt_call_gc))
 .Lcaml_jit_rt_call_gc:
     /* Push preserved registers */
-        pushq   %rdi
-        pushq   %rsi
         subq    $(1*8), %rsp
         movlpd  %xmm0, 0*8(%rsp)
     /* Push environment and acc onto the Caml stack */
@@ -231,8 +163,6 @@ FUNCTION(G(caml_jit_rt_call_gc))
     /* Restore preserved registers */
         movlpd  0*8(%rsp), %xmm0
         addq    $(1*8), %rsp
-        popq    %rsi
-        popq    %rdi
         ret
 
         
@@ -242,13 +172,20 @@ FUNCTION(G(caml_jit_rt_call_gc))
 	 *
 	 * Upon entry, %rax contains the restart byte code address.
          */
+.Lcaml_jit_rt_grab_closure_and_return_gc:
+        addq    %rdx, %r15
+        call    .Lcaml_jit_rt_call_gc
+        jmp     .Lcaml_jit_rt_grab_closure_and_return_1
 FUNCTION(G(caml_jit_rt_grab_closure_and_return))
     /* Determine the wosize from the extra arguments */
         shrq    $1, %r13
         addq    $3, %r13
     /* Allocate space in the minor heap */
+.Lcaml_jit_rt_grab_closure_and_return_1:
         leaq    8(, %r13, 8), %rdx
-        call    .Lcaml_jit_rt_allocN
+        subq    %rdx, %r15
+        CMP_VAR(caml_young_limit, %r15)
+        jb      .Lcaml_jit_rt_grab_closure_and_return_gc
     /* Setup for initialization below */
         leaq    -2(%r13), %rcx
         leaq    3*8(%r15), %rdi
@@ -643,73 +580,6 @@ FUNCTION(G(caml_jit_rt_stop))
         popq    %rbx
         popq    %rbp
         ret
-
-
-/* Floating point operations */
-
-FUNCTION(G(caml_jit_rt_copy_double))
-.Lcaml_jit_rt_copy_double:
-        call    .Lcaml_jit_rt_alloc1
-        movq    $((1 << 10) | (3 << 8) | 253), 0*8(%r15)
-        movlpd  %xmm0, 1*8(%r15)
-        leaq    1*8(%r15), %rax
-        ret
-
-        /* caml_jit_rt_add_float:
-	 *
-	 * Adds the floating point values in (%rax) and
-	 * -1*8(%r14) and stores the result into a newly
-	 * allocated float block. Upon return %rax points
-	 * to the newly allocated float block with the
-	 * result.
-         */
-FUNCTION(G(caml_jit_rt_add_float))
-        movq    -1*8(%r14), %rsi
-        movlpd  (%rax), %xmm0
-        addsd   (%rsi), %xmm0
-        jmp     .Lcaml_jit_rt_copy_double
-
-        /* caml_jit_rt_sub_float:
-	 *
-	 * Subtracts the floating point values in (%rax) and
-	 * -1*8(%r14) and stores the result into a newly
-	 * allocated float block. Upon return %rax points
-	 * to the newly allocated float block with the
-	 * result.
-         */
-FUNCTION(G(caml_jit_rt_sub_float))
-        movq    -1*8(%r14), %rsi
-        movlpd  (%rax), %xmm0
-        subsd   (%rsi), %xmm0
-        jmp     .Lcaml_jit_rt_copy_double
-
-        /* caml_jit_rt_mul_float:
-	 *
-	 * Multiplies the floating point values in (%rax) and
-	 * -1*8(%r14) and stores the result into a newly
-	 * allocated float block. Upon return %rax points
-	 * to the newly allocated float block with the
-	 * result.
-         */
-FUNCTION(G(caml_jit_rt_mul_float))
-        movq    -1*8(%r14), %rsi
-        movlpd  (%rax), %xmm0
-        mulsd   (%rsi), %xmm0
-        jmp     .Lcaml_jit_rt_copy_double
-
-        /* caml_jit_rt_div_float:
-	 *
-	 * Divides the floating point values in (%rax) and
-	 * -1*8(%r14) and stores the result into a newly
-	 * allocated float block. Upon return %rax points
-	 * to the newly allocated float block with the
-	 * result.
-         */
-FUNCTION(G(caml_jit_rt_div_float))
-        movq    -1*8(%r14), %rsi
-        movlpd  (%rax), %xmm0
-        divsd   (%rsi), %xmm0
-        jmp     .Lcaml_jit_rt_copy_double
 
 
 /* Copying operations */

@@ -21,10 +21,8 @@
 
 #ifdef CAML_JIT
 
-/* from jit_rt_amd64.S */
-CAML_JIT_INTERNAL void  caml_jit_rt_alloc1();
-CAML_JIT_INTERNAL void  caml_jit_rt_alloc2();
-CAML_JIT_INTERNAL void  caml_jit_rt_alloc3();
+/* from jit_rt_amd64.S/jit_rt_i386.S */
+CAML_JIT_INTERNAL void  caml_jit_rt_call_gc();
 CAML_JIT_INTERNAL void  caml_jit_rt_allocN();
 CAML_JIT_INTERNAL void  caml_jit_rt_apply1();
 CAML_JIT_INTERNAL void  caml_jit_rt_apply2();

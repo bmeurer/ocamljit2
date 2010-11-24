@@ -621,7 +621,7 @@ FUNCTION(G(caml_jit_rt_start))
 	 */
 .Lcaml_jit_rt_stop_exn:
     /* Mark %rax as exception result */
-        orb     $2, %al
+        orq     $2, %rax
 FUNCTION(G(caml_jit_rt_stop))
 .Lcaml_jit_rt_stop:        
     /* Make stack and young pointer available to C code */

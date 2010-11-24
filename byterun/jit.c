@@ -1289,7 +1289,7 @@ static void *caml_jit_compile(code_t pc)
       } while (0);
 #endif
       jx86_shrn_reg_imm(cp, JX86_NAX, 9);
-      jx86_orb_reg_imm(cp, JX86_AL, 1);
+      jx86_orn_reg_imm(cp, JX86_NAX, 1);
       break;
 
     case GETVECTITEM:
@@ -1480,7 +1480,7 @@ static void *caml_jit_compile(code_t pc)
     }
 
     case BOOLNOT:
-      jx86_xorb_reg_imm(cp, JX86_AL, 2);
+      jx86_xorn_reg_imm(cp, JX86_NAX, 2);
       break;
 
 /* Exceptions */
@@ -1842,7 +1842,7 @@ static void *caml_jit_compile(code_t pc)
     case SUBINT:
       jx86_subn_reg_membase(cp, JX86_NAX, CAML_JIT_NSP, sp);
     or1_pop1:
-      jx86_orb_reg_imm(cp, JX86_AL, 1);
+      jx86_orn_reg_imm(cp, JX86_NAX, 1);
       goto pop1;
 
     case MULINT:
@@ -1904,7 +1904,7 @@ static void *caml_jit_compile(code_t pc)
     shiftint:
       jx86_movn_reg_membase(cp, JX86_NCX, CAML_JIT_NSP, sp);
       jx86_subn_reg_imm(cp, JX86_NAX, 1);
-      jx86_shrb_reg_imm(cp, JX86_CL, 1);
+      jx86_shrn_reg_imm(cp, JX86_NCX, 1);
       jx86_shfn_reg_reg(cp, op, JX86_NAX, JX86_CL);
       goto or1_pop1;
     case LSRINT:
@@ -1988,7 +1988,7 @@ static void *caml_jit_compile(code_t pc)
       }
       else {
         jx86_shll_reg_imm(cp, JX86_EAX, 1);
-        jx86_orb_reg_imm(cp, JX86_AL, 1);
+        jx86_orn_reg_imm(cp, JX86_NAX, 1);
       }
       break;
 

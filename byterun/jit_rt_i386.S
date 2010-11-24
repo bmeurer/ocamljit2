@@ -542,7 +542,7 @@ L(caml_jit_rt_start_caught):
 	 */
 L(caml_jit_rt_stop_exn):
     /* Mark %rax as exception result */
-        orb     $2, %al
+        orl     $2, %eax
 FUNCTION(G(caml_jit_rt_stop))
 L(caml_jit_rt_stop):
     /* Make stack and young pointer available to C code */

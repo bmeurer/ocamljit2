@@ -138,7 +138,7 @@ FUNCTION(G(caml_jit_rt_call_gc))
 L(caml_jit_rt_call_gc):
     /* Push preserved registers */
         subl    $(1*8), %esp
-        movlpd  %xmm0, 0*8(%esp)
+        movsd   %xmm0, 0*8(%esp)
     /* Push environment and acc onto the Caml stack */
         movl    %ebp, -1*4(%esi)
         movl    %eax, -2*4(%esi)
@@ -154,7 +154,7 @@ L(caml_jit_rt_call_gc):
         movl    -1*4(%esi), %ebp
         movl    -2*4(%esi), %eax
     /* Restore preserved registers */
-        movlpd  0*8(%esp), %xmm0
+        movsd   0*8(%esp), %xmm0
         addl    $(1*8), %esp
         ret
 
@@ -285,10 +285,10 @@ FUNCTION(G(caml_jit_rt_apply1))
          */
 FUNCTION(G(caml_jit_rt_apply2))
     /* Save arguments */
-        movlpd  0*4(%esi), %xmm0 /* arg1 + arg2 */
+        movsd   0*4(%esi), %xmm0 /* arg1 + arg2 */
     /* Prepare stack frame */
         subl    $(3*4), %esi
-        movlpd  %xmm0, 0*4(%esi) /* arg1 + arg2 */
+        movsd   %xmm0, 0*4(%esi) /* arg1 + arg2 */
         movl    %edx, 2*4(%esi)  /* return address */
         movl    %ebp, 3*4(%esi)  /* environment */
         movl    %ebx, 4*4(%esi)  /* extra args */
@@ -304,11 +304,11 @@ FUNCTION(G(caml_jit_rt_apply2))
          */
 FUNCTION(G(caml_jit_rt_apply3))
     /* Save arguments */
-        movlpd  0*4(%esi), %xmm0 /* arg1 + arg2 */
+        movsd   0*4(%esi), %xmm0 /* arg1 + arg2 */
         movl    2*4(%esi), %ecx  /* arg3 */
     /* Prepare stack frame */
         subl    $(3*4), %esi
-        movlpd  %xmm0, 0*4(%esi) /* arg1 + arg2 */
+        movsd   %xmm0, 0*4(%esi) /* arg1 + arg2 */
         movl    %ecx, 2*4(%esi)  /* arg3 */
         movl    %edx, 3*4(%esi)  /* return address */
         movl    %ebp, 4*4(%esi)  /* environment */
@@ -571,7 +571,7 @@ FUNCTION(G(caml_jit_rt_copy_double))
 L(caml_jit_rt_copy_double):
         call    L(caml_jit_rt_alloc2)
         movl    $((2 << 10) | (3 << 8) | 253), 0*4(%edi)
-        movlpd  %xmm0, 1*4(%edi)
+        movsd   %xmm0, 1*4(%edi)
         leal    1*4(%edi), %eax
         ret
 
@@ -585,7 +585,7 @@ L(caml_jit_rt_copy_double):
          */
 FUNCTION(G(caml_jit_rt_add_float))
         movl    -1*4(%esi), %edx
-        movlpd  (%eax), %xmm0
+        movsd   (%eax), %xmm0
         addsd   (%edx), %xmm0
         jmp     L(caml_jit_rt_copy_double)
 
@@ -599,7 +599,7 @@ FUNCTION(G(caml_jit_rt_add_float))
          */
 FUNCTION(G(caml_jit_rt_sub_float))
         movl    -1*4(%esi), %edx
-        movlpd  (%eax), %xmm0
+        movsd   (%eax), %xmm0
         subsd   (%edx), %xmm0
         jmp     L(caml_jit_rt_copy_double)
 
@@ -613,7 +613,7 @@ FUNCTION(G(caml_jit_rt_sub_float))
          */
 FUNCTION(G(caml_jit_rt_mul_float))
         movl    -1*4(%esi), %edx
-        movlpd  (%eax), %xmm0
+        movsd   (%eax), %xmm0
         mulsd   (%edx), %xmm0
         jmp     L(caml_jit_rt_copy_double)
 
@@ -627,7 +627,7 @@ FUNCTION(G(caml_jit_rt_mul_float))
          */
 FUNCTION(G(caml_jit_rt_div_float))
         movl    -1*4(%esi), %edx
-        movlpd  (%eax), %xmm0
+        movsd   (%eax), %xmm0
         divsd   (%edx), %xmm0
         jmp     L(caml_jit_rt_copy_double)
 
@@ -649,8 +649,8 @@ FUNCTION(G(caml_jit_rt_copy_floats))
 L(caml_jit_rt_copy_floats_1):
         subl    $1, %ecx
         movl    0*4(%esi), %eax
-        movlpd  0*8(%eax), %xmm0
-        movlpd  %xmm0, 0*8(%edx)
+        movsd   0*8(%eax), %xmm0
+        movsd   %xmm0, 0*8(%edx)
         leal    1*4(%esi), %esi
         leal    1*8(%edx), %edx
         jnz     L(caml_jit_rt_copy_floats_1)
@@ -681,14 +681,14 @@ FUNCTION(G(caml_jit_rt_trace))
         pushl   %edx
     /* Save floating-point registers */
         subl    $(8*8), %esp
-        movlpd  %xmm0, 0*8(%esp)
-        movlpd  %xmm1, 1*8(%esp)
-        movlpd  %xmm2, 2*8(%esp)
-        movlpd  %xmm3, 3*8(%esp)
-        movlpd  %xmm4, 4*8(%esp)
-        movlpd  %xmm5, 5*8(%esp)
-        movlpd  %xmm6, 6*8(%esp)
-        movlpd  %xmm7, 7*8(%esp)
+        movsd   %xmm0, 0*8(%esp)
+        movsd   %xmm1, 1*8(%esp)
+        movsd   %xmm2, 2*8(%esp)
+        movsd   %xmm3, 3*8(%esp)
+        movsd   %xmm4, 4*8(%esp)
+        movsd   %xmm5, 5*8(%esp)
+        movsd   %xmm6, 6*8(%esp)
+        movsd   %xmm7, 7*8(%esp)
     /* Make stack and young ptr available to C code */
         movl    %esi, G(caml_extern_sp)
         movl    %edi, G(caml_young_ptr)
@@ -704,14 +704,14 @@ FUNCTION(G(caml_jit_rt_trace))
     /* Pop the parameters off the C stack */
         addl    $(6*4), %esp
     /* Restore floating-point registers */
-        movlpd  7*8(%esp), %xmm7
-        movlpd  6*8(%esp), %xmm6
-        movlpd  5*8(%esp), %xmm5
-        movlpd  4*8(%esp), %xmm4
-        movlpd  3*8(%esp), %xmm3
-        movlpd  2*8(%esp), %xmm2
-        movlpd  1*8(%esp), %xmm1
-        movlpd  0*8(%esp), %xmm0
+        movsd   7*8(%esp), %xmm7
+        movsd   6*8(%esp), %xmm6
+        movsd   5*8(%esp), %xmm5
+        movsd   4*8(%esp), %xmm4
+        movsd   3*8(%esp), %xmm3
+        movsd   2*8(%esp), %xmm2
+        movsd   1*8(%esp), %xmm1
+        movsd   0*8(%esp), %xmm0
         addl    $(8*8), %esp
     /* Restore preserved registers */
 	popl    %edx

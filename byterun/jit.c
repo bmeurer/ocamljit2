@@ -1116,21 +1116,21 @@ static void *caml_jit_compile(code_t pc)
           jx86_addn_reg_imm(cp, CAML_JIT_NSP, sp);
           sp = 0;
         }
-        jx86_movlpd_xmm_membase(cp, JX86_XMM0, JX86_NAX, 0);
+        jx86_movsd_xmm_membase(cp, JX86_XMM0, JX86_NAX, 0);
         jx86_movn_reg_imm(cp, JX86_NDX, Bhsize_wosize(wosize));
         jx86_call(cp, &caml_jit_rt_allocN);
         jx86_movn_membase_imm(cp, CAML_JIT_NYP, 0 * CAML_JIT_WORD_SIZE,
                               Make_header(wosize, Double_array_tag, Caml_black));
-        jx86_movlpd_membase_xmm(cp, CAML_JIT_NYP, 1 * CAML_JIT_WORD_SIZE, JX86_XMM0);
+        jx86_movsd_membase_xmm(cp, CAML_JIT_NYP, 1 * CAML_JIT_WORD_SIZE, JX86_XMM0);
         jx86_lean_reg_membase(cp, JX86_NAX, CAML_JIT_NYP, 1 * CAML_JIT_WORD_SIZE);
         wosize -= Double_wosize;
         if (wosize == 2 * Double_wosize) {
           jx86_movn_reg_membase(cp, JX86_NCX, CAML_JIT_NSP, sp); sp += CAML_JIT_WORD_SIZE;
           jx86_movn_reg_membase(cp, JX86_NDX, CAML_JIT_NSP, sp); sp += CAML_JIT_WORD_SIZE;
-          jx86_movlpd_xmm_membase(cp, JX86_XMM0, JX86_NCX, 0);
-          jx86_movlpd_xmm_membase(cp, JX86_XMM1, JX86_NDX, 0);
-          jx86_movlpd_membase_xmm(cp, JX86_NAX, 1 * sizeof(double), JX86_XMM0);
-          jx86_movlpd_membase_xmm(cp, JX86_NAX, 2 * sizeof(double), JX86_XMM1);
+          jx86_movsd_xmm_membase(cp, JX86_XMM0, JX86_NCX, 0);
+          jx86_movsd_xmm_membase(cp, JX86_XMM1, JX86_NDX, 0);
+          jx86_movsd_membase_xmm(cp, JX86_NAX, 1 * sizeof(double), JX86_XMM0);
+          jx86_movsd_membase_xmm(cp, JX86_NAX, 2 * sizeof(double), JX86_XMM1);
         }
         else if (wosize != 0) {
           jx86_movn_reg_imm(cp, JX86_NCX, wosize / Double_wosize);
@@ -1210,7 +1210,7 @@ static void *caml_jit_compile(code_t pc)
       jx86_movn_reg_membase(cp, JX86_NCX, CAML_JIT_NSP, 0 * CAML_JIT_WORD_SIZE);
       jx86_movn_reg_membase(cp, JX86_NDX, CAML_JIT_NSP, 1 * CAML_JIT_WORD_SIZE);
 #else
-      jx86_movlpd_xmm_membase(cp, JX86_XMM0, CAML_JIT_NSP, 0 * CAML_JIT_WORD_SIZE);
+      jx86_movsd_xmm_membase(cp, JX86_XMM0, CAML_JIT_NSP, 0 * CAML_JIT_WORD_SIZE);
 #endif
       sp = 2 * CAML_JIT_WORD_SIZE;
       /* initialize the block */
@@ -1220,7 +1220,7 @@ static void *caml_jit_compile(code_t pc)
       jx86_movn_membase_reg(cp, CAML_JIT_NYP, 2 * CAML_JIT_WORD_SIZE, JX86_NCX);
       jx86_movn_membase_reg(cp, CAML_JIT_NYP, 3 * CAML_JIT_WORD_SIZE, JX86_NDX);
 #else
-      jx86_movlpd_membase_xmm(cp, CAML_JIT_NYP, 2 * CAML_JIT_WORD_SIZE, JX86_XMM0);
+      jx86_movsd_membase_xmm(cp, CAML_JIT_NYP, 2 * CAML_JIT_WORD_SIZE, JX86_XMM0);
 #endif
       jx86_lean_reg_membase(cp, JX86_NAX, CAML_JIT_NYP, 1 * CAML_JIT_WORD_SIZE);
       pc++;
@@ -1240,7 +1240,7 @@ static void *caml_jit_compile(code_t pc)
       break;
 
     case GETFLOATFIELD:
-      jx86_movlpd_xmm_membase(cp, JX86_XMM0, JX86_NAX, *pc++ * sizeof(double));
+      jx86_movsd_xmm_membase(cp, JX86_XMM0, JX86_NAX, *pc++ * sizeof(double));
     copy_double:
       addr = &caml_jit_rt_copy_double;
       goto flush_call_addr;
@@ -1270,8 +1270,8 @@ static void *caml_jit_compile(code_t pc)
 
     case SETFLOATFIELD:
       jx86_movn_reg_membase(cp, JX86_NDX, CAML_JIT_NSP, sp); sp += CAML_JIT_WORD_SIZE;
-      jx86_movlpd_xmm_membase(cp, JX86_XMM0, JX86_NDX, 0);
-      jx86_movlpd_membase_xmm(cp, JX86_NAX, *pc++ * sizeof(double), JX86_XMM0);
+      jx86_movsd_xmm_membase(cp, JX86_XMM0, JX86_NDX, 0);
+      jx86_movsd_membase_xmm(cp, JX86_NAX, *pc++ * sizeof(double), JX86_XMM0);
       goto unit;
 
 /* Array operations */
@@ -1619,7 +1619,7 @@ static void *caml_jit_compile(code_t pc)
       }
       else if (addr == &caml_eq_float) {
         jx86_movn_reg_membase(cp, JX86_NCX, CAML_JIT_NSP, sp);
-        jx86_movlpd_xmm_membase(cp, JX86_XMM0, JX86_NAX, 0);
+        jx86_movsd_xmm_membase(cp, JX86_XMM0, JX86_NAX, 0);
         jx86_ucomisd_xmm_membase(cp, JX86_XMM0, JX86_NCX, 0);
         jx86_sete_reg(cp, JX86_AL);
         jx86_setnp_reg(cp, JX86_DL);
@@ -1629,7 +1629,7 @@ static void *caml_jit_compile(code_t pc)
       }
       else if (addr == &caml_neq_float) {
         jx86_movn_reg_membase(cp, JX86_NCX, CAML_JIT_NSP, sp);
-        jx86_movlpd_xmm_membase(cp, JX86_XMM0, JX86_NAX, 0);
+        jx86_movsd_xmm_membase(cp, JX86_XMM0, JX86_NAX, 0);
         jx86_ucomisd_xmm_membase(cp, JX86_XMM0, JX86_NCX, 0);
         jx86_setne_reg(cp, JX86_AL);
         jx86_setp_reg(cp, JX86_DL);
@@ -1641,7 +1641,7 @@ static void *caml_jit_compile(code_t pc)
         op = JX86_SETAE;
       cmpfloat_rev:
         jx86_movn_reg_membase(cp, JX86_NCX, CAML_JIT_NSP, sp);
-        jx86_movlpd_xmm_membase(cp, JX86_XMM0, JX86_NCX, 0);
+        jx86_movsd_xmm_membase(cp, JX86_XMM0, JX86_NCX, 0);
         jx86_ucomisd_xmm_membase(cp, JX86_XMM0, JX86_NAX, 0);
         goto cmpint1;
       }
@@ -1653,7 +1653,7 @@ static void *caml_jit_compile(code_t pc)
         op = JX86_SETAE;
       cmpfloat:
         jx86_movn_reg_membase(cp, JX86_NCX, CAML_JIT_NSP, sp);
-        jx86_movlpd_xmm_membase(cp, JX86_XMM0, JX86_NAX, 0);
+        jx86_movsd_xmm_membase(cp, JX86_XMM0, JX86_NAX, 0);
         jx86_ucomisd_xmm_membase(cp, JX86_XMM0, JX86_NCX, 0);
         goto cmpint1;
       }
@@ -1663,7 +1663,7 @@ static void *caml_jit_compile(code_t pc)
       }
       else if (addr == &caml_array_unsafe_get_float) {
         jx86_movn_reg_membase(cp, JX86_NCX, CAML_JIT_NSP, sp); sp += CAML_JIT_WORD_SIZE;
-        jx86_movlpd_xmm_memindex(cp, JX86_XMM0, JX86_NAX, -4, JX86_NCX, 2);
+        jx86_movsd_xmm_memindex(cp, JX86_XMM0, JX86_NAX, -4, JX86_NCX, 2);
         goto copy_double;
       }
       else {
@@ -1675,8 +1675,8 @@ static void *caml_jit_compile(code_t pc)
       if (addr == &caml_array_unsafe_set_float) {
         jx86_movn_reg_membase(cp, JX86_NCX, CAML_JIT_NSP, sp); sp += CAML_JIT_WORD_SIZE;
         jx86_movn_reg_membase(cp, JX86_NDX, CAML_JIT_NSP, sp); sp += CAML_JIT_WORD_SIZE;
-        jx86_movlpd_xmm_membase(cp, JX86_XMM0, JX86_NDX, 0);
-        jx86_movlpd_memindex_xmm(cp, JX86_NAX, -4, JX86_NCX, 2, JX86_XMM0);
+        jx86_movsd_xmm_membase(cp, JX86_XMM0, JX86_NDX, 0);
+        jx86_movsd_memindex_xmm(cp, JX86_NAX, -4, JX86_NCX, 2, JX86_XMM0);
         goto unit;
       }
       else {

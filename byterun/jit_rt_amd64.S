@@ -210,7 +210,7 @@ FUNCTION(G(caml_jit_rt_call_gc))
         pushq   %rdi
         pushq   %rsi
         subq    $(1*8), %rsp
-        movlpd  %xmm0, 0*8(%rsp)
+        movsd   %xmm0, 0*8(%rsp)
     /* Push environment and acc onto the Caml stack */
         movq    %r12, -1*8(%r14)
         movq    %rax, -2*8(%r14)
@@ -229,7 +229,7 @@ FUNCTION(G(caml_jit_rt_call_gc))
         movq    -1*8(%r14), %r12
         movq    -2*8(%r14), %rax
     /* Restore preserved registers */
-        movlpd  0*8(%rsp), %xmm0
+        movsd   0*8(%rsp), %xmm0
         addq    $(1*8), %rsp
         popq    %rsi
         popq    %rdi
@@ -651,7 +651,7 @@ FUNCTION(G(caml_jit_rt_copy_double))
 .Lcaml_jit_rt_copy_double:
         call    .Lcaml_jit_rt_alloc1
         movq    $((1 << 10) | (3 << 8) | 253), 0*8(%r15)
-        movlpd  %xmm0, 1*8(%r15)
+        movsd   %xmm0, 1*8(%r15)
         leaq    1*8(%r15), %rax
         ret
 
@@ -665,7 +665,7 @@ FUNCTION(G(caml_jit_rt_copy_double))
          */
 FUNCTION(G(caml_jit_rt_add_float))
         movq    -1*8(%r14), %rsi
-        movlpd  (%rax), %xmm0
+        movsd   (%rax), %xmm0
         addsd   (%rsi), %xmm0
         jmp     .Lcaml_jit_rt_copy_double
 
@@ -679,7 +679,7 @@ FUNCTION(G(caml_jit_rt_add_float))
          */
 FUNCTION(G(caml_jit_rt_sub_float))
         movq    -1*8(%r14), %rsi
-        movlpd  (%rax), %xmm0
+        movsd   (%rax), %xmm0
         subsd   (%rsi), %xmm0
         jmp     .Lcaml_jit_rt_copy_double
 
@@ -693,7 +693,7 @@ FUNCTION(G(caml_jit_rt_sub_float))
          */
 FUNCTION(G(caml_jit_rt_mul_float))
         movq    -1*8(%r14), %rsi
-        movlpd  (%rax), %xmm0
+        movsd   (%rax), %xmm0
         mulsd   (%rsi), %xmm0
         jmp     .Lcaml_jit_rt_copy_double
 
@@ -707,7 +707,7 @@ FUNCTION(G(caml_jit_rt_mul_float))
          */
 FUNCTION(G(caml_jit_rt_div_float))
         movq    -1*8(%r14), %rsi
-        movlpd  (%rax), %xmm0
+        movsd   (%rax), %xmm0
         divsd   (%rsi), %xmm0
         jmp     .Lcaml_jit_rt_copy_double
 
@@ -728,8 +728,8 @@ FUNCTION(G(caml_jit_rt_copy_floats))
 .Lcaml_jit_rt_copy_floats_1:
         subl    $1, %ecx
         movq    0*8(%r14), %r11
-        movlpd  0*8(%r11), %xmm0
-        movlpd  %xmm0, 0*8(%rdx)
+        movsd   0*8(%r11), %xmm0
+        movsd   %xmm0, 0*8(%rdx)
         leaq    1*8(%r14), %r14
         leaq    1*8(%rdx), %rdx
         jnz     .Lcaml_jit_rt_copy_floats_1
@@ -757,22 +757,22 @@ FUNCTION(G(caml_jit_rt_trace))
         pushq   %r11
     /* Save floating-point registers */
         subq    $(16*8), %rsp
-        movlpd  %xmm0, 0*8(%rsp)
-        movlpd  %xmm1, 1*8(%rsp)
-        movlpd  %xmm2, 2*8(%rsp)
-        movlpd  %xmm3, 3*8(%rsp)
-        movlpd  %xmm4, 4*8(%rsp)
-        movlpd  %xmm5, 5*8(%rsp)
-        movlpd  %xmm6, 6*8(%rsp)
-        movlpd  %xmm7, 7*8(%rsp)
-        movlpd  %xmm8, 8*8(%rsp)
-        movlpd  %xmm9, 9*8(%rsp)
-        movlpd  %xmm10, 10*8(%rsp)
-        movlpd  %xmm11, 11*8(%rsp)
-        movlpd  %xmm12, 12*8(%rsp)
-        movlpd  %xmm13, 13*8(%rsp)
-        movlpd  %xmm14, 14*8(%rsp)
-        movlpd  %xmm15, 15*8(%rsp)
+        movsd   %xmm0, 0*8(%rsp)
+        movsd   %xmm1, 1*8(%rsp)
+        movsd   %xmm2, 2*8(%rsp)
+        movsd   %xmm3, 3*8(%rsp)
+        movsd   %xmm4, 4*8(%rsp)
+        movsd   %xmm5, 5*8(%rsp)
+        movsd   %xmm6, 6*8(%rsp)
+        movsd   %xmm7, 7*8(%rsp)
+        movsd   %xmm8, 8*8(%rsp)
+        movsd   %xmm9, 9*8(%rsp)
+        movsd   %xmm10, 10*8(%rsp)
+        movsd   %xmm11, 11*8(%rsp)
+        movsd   %xmm12, 12*8(%rsp)
+        movsd   %xmm13, 13*8(%rsp)
+        movsd   %xmm14, 14*8(%rsp)
+        movsd   %xmm15, 15*8(%rsp)
     /* Make stack and young ptr available to C code */
         STORE_VAR(%r14, caml_extern_sp)
         STORE_VAR(%r15, caml_young_ptr)
@@ -789,22 +789,22 @@ FUNCTION(G(caml_jit_rt_trace))
         movq    %rbp, %rsp
         popq    %rbp
     /* Restore floating-point registers */
-        movlpd  15*8(%rsp), %xmm15
-        movlpd  14*8(%rsp), %xmm14
-        movlpd  13*8(%rsp), %xmm13
-        movlpd  12*8(%rsp), %xmm12
-        movlpd  11*8(%rsp), %xmm11
-        movlpd  10*8(%rsp), %xmm10
-        movlpd  9*8(%rsp), %xmm9
-        movlpd  8*8(%rsp), %xmm8
-        movlpd  7*8(%rsp), %xmm7
-        movlpd  6*8(%rsp), %xmm6
-        movlpd  5*8(%rsp), %xmm5
-        movlpd  4*8(%rsp), %xmm4
-        movlpd  3*8(%rsp), %xmm3
-        movlpd  2*8(%rsp), %xmm2
-        movlpd  1*8(%rsp), %xmm1
-        movlpd  0*8(%rsp), %xmm0
+        movsd   15*8(%rsp), %xmm15
+        movsd   14*8(%rsp), %xmm14
+        movsd   13*8(%rsp), %xmm13
+        movsd   12*8(%rsp), %xmm12
+        movsd   11*8(%rsp), %xmm11
+        movsd   10*8(%rsp), %xmm10
+        movsd   9*8(%rsp), %xmm9
+        movsd   8*8(%rsp), %xmm8
+        movsd   7*8(%rsp), %xmm7
+        movsd   6*8(%rsp), %xmm6
+        movsd   5*8(%rsp), %xmm5
+        movsd   4*8(%rsp), %xmm4
+        movsd   3*8(%rsp), %xmm3
+        movsd   2*8(%rsp), %xmm2
+        movsd   1*8(%rsp), %xmm1
+        movsd   0*8(%rsp), %xmm0
         addq    $(16*8), %rsp
     /* Restore preserved registers */
         popq    %r11

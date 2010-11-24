@@ -56,6 +56,13 @@
 
 #endif
 
+        .section .rodata.cst8,"aM",@progbits
+        .p2align 4
+G(caml_jit_rt_neg_mask):
+        .quad   0x8000000000000000, 0
+G(caml_jit_rt_abs_mask):
+        .quad   0x7FFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF
+
 
         .text
 
@@ -569,67 +576,23 @@ L(caml_jit_rt_stop):
 
 FUNCTION(G(caml_jit_rt_copy_double))
 L(caml_jit_rt_copy_double):
+    /* %eax may be invalid by now */
+        xorl    %eax, %eax
+    /* Allocate space in the minor heap */
         call    L(caml_jit_rt_alloc2)
+    /* Store the double value */
         movl    $((2 << 10) | (3 << 8) | 253), 0*4(%edi)
         movsd   %xmm0, 1*4(%edi)
         leal    1*4(%edi), %eax
         ret
 
-        /* caml_jit_rt_add_float:
-	 *
-	 * Adds the floating point values in (%eax) and
-	 * -1*4(%esi) and stores the result into a newly
-	 * allocated float block. Upon return %eax points
-	 * to the newly allocated float block with the
-	 * result.
-         */
-FUNCTION(G(caml_jit_rt_add_float))
-        movl    -1*4(%esi), %edx
-        movsd   (%eax), %xmm0
-        addsd   (%edx), %xmm0
-        jmp     L(caml_jit_rt_copy_double)
+FUNCTION(G(caml_jit_rt_abs_float))
+        andpd   G(caml_jit_rt_abs_mask), %xmm0
+        ret
 
-        /* caml_jit_rt_sub_float:
-	 *
-	 * Subtracts the floating point values in (%eax) and
-	 * -1*4(%esi) and stores the result into a newly
-	 * allocated float block. Upon return %eax points
-	 * to the newly allocated float block with the
-	 * result.
-         */
-FUNCTION(G(caml_jit_rt_sub_float))
-        movl    -1*4(%esi), %edx
-        movsd   (%eax), %xmm0
-        subsd   (%edx), %xmm0
-        jmp     L(caml_jit_rt_copy_double)
-
-        /* caml_jit_rt_mul_float:
-	 *
-	 * Multiplies the floating point values in (%eax) and
-	 * -1*4(%esi) and stores the result into a newly
-	 * allocated float block. Upon return %eax points
-	 * to the newly allocated float block with the
-	 * result.
-         */
-FUNCTION(G(caml_jit_rt_mul_float))
-        movl    -1*4(%esi), %edx
-        movsd   (%eax), %xmm0
-        mulsd   (%edx), %xmm0
-        jmp     L(caml_jit_rt_copy_double)
-
-        /* caml_jit_rt_div_float:
-	 *
-	 * Divides the floating point values in (%eax) and
-	 * -1*4(%esi) and stores the result into a newly
-	 * allocated float block. Upon return %eax points
-	 * to the newly allocated float block with the
-	 * result.
-         */
-FUNCTION(G(caml_jit_rt_div_float))
-        movl    -1*4(%esi), %edx
-        movsd   (%eax), %xmm0
-        divsd   (%edx), %xmm0
-        jmp     L(caml_jit_rt_copy_double)
+FUNCTION(G(caml_jit_rt_neg_float))
+        xorpd   G(caml_jit_rt_neg_mask), %xmm0
+        ret
 
 
 /* Copying operations */

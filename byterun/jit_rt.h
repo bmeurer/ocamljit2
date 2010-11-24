@@ -45,6 +45,8 @@ CAML_JIT_INTERNAL void  caml_jit_rt_add_float();
 CAML_JIT_INTERNAL void  caml_jit_rt_sub_float();
 CAML_JIT_INTERNAL void  caml_jit_rt_mul_float();
 CAML_JIT_INTERNAL void  caml_jit_rt_div_float();
+CAML_JIT_INTERNAL void  caml_jit_rt_abs_float();
+CAML_JIT_INTERNAL void  caml_jit_rt_neg_float();
 
 CAML_JIT_INTERNAL void  caml_jit_rt_copy_floats();
 

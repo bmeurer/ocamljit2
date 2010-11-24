@@ -89,6 +89,16 @@
         movq    GREL(dstlabel)(%rip), %r11; \
         incl    (%r11)
 
+/* Andpd [srclabel] to [dstreg]. Clobbers %r11. */
+#define ANDPD_VAR(srclabel, dstreg) \
+        movq    GREL(srclabel)(%rip), %r11; \
+        andpd   (%r11), dstreg
+        
+/* Xorpd [srclabel] to [dstreg]. Clobbers %r11. */
+#define XORPD_VAR(srclabel, dstreg) \
+        movq    GREL(srclabel)(%rip), %r11; \
+        xorpd   (%r11), dstreg
+        
 #else
 
 /* Non-PIC operations on global variables. Slightly faster. */
@@ -125,8 +135,29 @@
 #define INCL_VAR(dstlabel) \
         incl    G(dstlabel)(%rip)
 
+/* Andpd [srclabel] to [dstreg]. */
+#define ANDPD_VAR(srclabel, dstreg) \
+        xorpd   G(srclabel)(%rip), dstreg
+        
+/* Xorpd [srclabel] to [dstreg]. */
+#define XORPD_VAR(srclabel, dstreg) \
+        xorpd   G(srclabel)(%rip), dstreg
+        
 #endif
 
+        
+#ifdef SYS_macosx
+        .const
+#else
+        .section .rodata.cst8,"a",@progbits
+#endif
+        .p2align 4
+G(caml_jit_rt_neg_mask):
+        .quad   0x8000000000000000, 0
+G(caml_jit_rt_abs_mask):
+        .quad   0x7FFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF
+
+        
         .text
 
 /* Allocation */
@@ -649,67 +680,23 @@ FUNCTION(G(caml_jit_rt_stop))
 
 FUNCTION(G(caml_jit_rt_copy_double))
 .Lcaml_jit_rt_copy_double:
+    /* %rax may be invalid by now */
+        xorq    %rax, %rax
+    /* Allocate space in the minor heap */
         call    .Lcaml_jit_rt_alloc1
+    /* Store the double value */
         movq    $((1 << 10) | (3 << 8) | 253), 0*8(%r15)
         movsd   %xmm0, 1*8(%r15)
         leaq    1*8(%r15), %rax
         ret
 
-        /* caml_jit_rt_add_float:
-	 *
-	 * Adds the floating point values in (%rax) and
-	 * -1*8(%r14) and stores the result into a newly
-	 * allocated float block. Upon return %rax points
-	 * to the newly allocated float block with the
-	 * result.
-         */
-FUNCTION(G(caml_jit_rt_add_float))
-        movq    -1*8(%r14), %rsi
-        movsd   (%rax), %xmm0
-        addsd   (%rsi), %xmm0
-        jmp     .Lcaml_jit_rt_copy_double
+FUNCTION(G(caml_jit_rt_abs_float))
+        ANDPD_VAR(caml_jit_rt_abs_mask, %xmm0)
+        ret
 
-        /* caml_jit_rt_sub_float:
-	 *
-	 * Subtracts the floating point values in (%rax) and
-	 * -1*8(%r14) and stores the result into a newly
-	 * allocated float block. Upon return %rax points
-	 * to the newly allocated float block with the
-	 * result.
-         */
-FUNCTION(G(caml_jit_rt_sub_float))
-        movq    -1*8(%r14), %rsi
-        movsd   (%rax), %xmm0
-        subsd   (%rsi), %xmm0
-        jmp     .Lcaml_jit_rt_copy_double
-
-        /* caml_jit_rt_mul_float:
-	 *
-	 * Multiplies the floating point values in (%rax) and
-	 * -1*8(%r14) and stores the result into a newly
-	 * allocated float block. Upon return %rax points
-	 * to the newly allocated float block with the
-	 * result.
-         */
-FUNCTION(G(caml_jit_rt_mul_float))
-        movq    -1*8(%r14), %rsi
-        movsd   (%rax), %xmm0
-        mulsd   (%rsi), %xmm0
-        jmp     .Lcaml_jit_rt_copy_double
-
-        /* caml_jit_rt_div_float:
-	 *
-	 * Divides the floating point values in (%rax) and
-	 * -1*8(%r14) and stores the result into a newly
-	 * allocated float block. Upon return %rax points
-	 * to the newly allocated float block with the
-	 * result.
-         */
-FUNCTION(G(caml_jit_rt_div_float))
-        movq    -1*8(%r14), %rsi
-        movsd   (%rax), %xmm0
-        divsd   (%rsi), %xmm0
-        jmp     .Lcaml_jit_rt_copy_double
+FUNCTION(G(caml_jit_rt_neg_float))
+        XORPD_VAR(caml_jit_rt_neg_mask, %xmm0)
+        ret
 
 
 /* Copying operations */

@@ -2202,141 +2202,195 @@ typedef enum
  * ----------------
  */
 
-#define jx86_sse_op2_membase_xmm(cp, op1, op2, breg, disp, sxmm)        \
+#define jx86_sse_op2_membase_xmm(cp, op1, op2, breg, disp, sxmm, size)  \
   do {                                                                  \
     const jx86_reg_t _breg_ = (const jx86_reg_t) (breg);                \
     const jx86_int32_t _disp_ = (const jx86_int32_t) (disp);            \
     const jx86_xmm_t _sxmm_ = (const jx86_xmm_t) (sxmm);                \
-    jx86_emit_rex((cp), 0, _sxmm_, 0, _breg_);                          \
+    const unsigned _size_ = (const unsigned) (size);                    \
+    jx86_emit_rex((cp), _size_, _sxmm_, 0, _breg_);                     \
     jx86_emit_uint16((cp), ((op2) << 8) | (op1));                       \
     jx86_emit_membase((cp), _sxmm_, _breg_, _disp_);                    \
   } while (0)
 
-#define jx86_sse_op2_xmm_membase(cp, op1, op2, dxmm, breg, disp)        \
+#define jx86_sse_op2_xmm_membase(cp, op1, op2, dxmm, breg, disp, size)  \
   do {                                                                  \
     const jx86_xmm_t _dxmm_ = (const jx86_xmm_t) (dxmm);                \
     const jx86_reg_t _breg_ = (const jx86_reg_t) (breg);                \
     const jx86_int32_t _disp_ = (const jx86_int32_t) (disp);            \
-    jx86_emit_rex((cp), 0, _dxmm_, 0, _breg_);                          \
+    const unsigned _size_ = (const unsigned) (size);                    \
+    jx86_emit_rex((cp), _size_, _dxmm_, 0, _breg_);                     \
     jx86_emit_uint16((cp), ((op2) << 8) | (op1));                       \
     jx86_emit_membase((cp), _dxmm_, _breg_, _disp_);                    \
   } while (0)
 
-#define jx86_sse_op2_xmm_xmm(cp, op1, op2, dxmm, sxmm)              \
+#define jx86_sse_op2_xmm_xmm(cp, op1, op2, dxmm, sxmm, size)        \
   do {                                                              \
     const jx86_xmm_t _dxmm_ = (const jx86_xmm_t) (dxmm);            \
     const jx86_xmm_t _sxmm_ = (const jx86_xmm_t) (sxmm);            \
-    jx86_emit_rex((cp), 0, _dxmm_, 0, _sxmm_);                      \
+    const unsigned _size_ = (const unsigned) (size);                \
+    jx86_emit_rex((cp), _size_, _dxmm_, 0, _sxmm_);                 \
     jx86_emit_uint16((cp), ((op2) << 8) | (op1));                   \
     jx86_emit_reg((cp), _dxmm_, _sxmm_);                            \
   } while (0)
 
-#define jx86_sse_op3_membase_xmm(cp, op1, op2, op3, breg, disp, sxmm)   \
+#define jx86_sse_op3_membase_xmm(cp, op1, op2, op3, breg, disp, sxmm, size) \
   do {                                                                  \
     const jx86_reg_t _breg_ = (const jx86_reg_t) (breg);                \
     const jx86_int32_t _disp_ = (const jx86_int32_t) (disp);            \
     const jx86_xmm_t _sxmm_ = (const jx86_xmm_t) (sxmm);                \
+    const unsigned _size_ = (const unsigned) (size);                    \
     jx86_emit_uint8((cp), (op1));                                       \
-    jx86_emit_rex((cp), 0, _sxmm_, 0, _breg_);                          \
+    jx86_emit_rex((cp), _size_, _sxmm_, 0, _breg_);                     \
     jx86_emit_uint16((cp), ((op3) << 8) | (op2));                       \
     jx86_emit_membase((cp), _sxmm_, _breg_, _disp_);                    \
   } while (0)
 
-#define jx86_sse_op3_memindex_xmm(cp, op1, op2, op3, breg, disp, ireg, shift, sxmm) \
+#define jx86_sse_op3_memindex_xmm(cp, op1, op2, op3, breg, disp, ireg, shift, sxmm, size) \
   do {                                                                  \
     const jx86_reg_t _breg_ = (const jx86_reg_t) (breg);                \
     const jx86_int32_t _disp_ = (const jx86_int32_t) (disp);            \
     const jx86_reg_t _ireg_ = (const jx86_reg_t) (ireg);                \
     const unsigned _shift_ = (const unsigned) (shift);                  \
     const jx86_xmm_t _sxmm_ = (const jx86_xmm_t) (sxmm);                \
+    const unsigned _size_ = (const unsigned) (size);                    \
     jx86_emit_uint8((cp), (op1));                                       \
-    jx86_emit_rex((cp), 0, _sxmm_, _ireg_, _breg_);                     \
+    jx86_emit_rex((cp), _size_, _sxmm_, _ireg_, _breg_);                \
     jx86_emit_uint16((cp), ((op3) << 8) | (op2));                       \
     jx86_emit_memindex((cp), _sxmm_, _breg_, _disp_, _ireg_, _shift_);  \
   } while (0)
 
-#define jx86_sse_op3_xmm_membase(cp, op1, op2, op3, dxmm, breg, disp)   \
+#define jx86_sse_op3_xmm_membase(cp, op1, op2, op3, dxmm, breg, disp, size) \
   do {                                                                  \
     const jx86_xmm_t _dxmm_ = (const jx86_xmm_t) (dxmm);                \
     const jx86_reg_t _breg_ = (const jx86_reg_t) (breg);                \
     const jx86_int32_t _disp_ = (const jx86_int32_t) (disp);            \
+    const unsigned _size_ = (const unsigned) (size);                    \
     jx86_emit_uint8((cp), (op1));                                       \
-    jx86_emit_rex((cp), 0, _dxmm_, 0, _breg_);                          \
+    jx86_emit_rex((cp), _size_, _dxmm_, 0, _breg_);                     \
     jx86_emit_uint16((cp), ((op3) << 8) | (op2));                       \
     jx86_emit_membase((cp), _dxmm_, _breg_, _disp_);                    \
   } while (0)
 
-#define jx86_sse_op3_xmm_memindex(cp, op1, op2, op3, dxmm, breg, disp, ireg, shift) \
+#define jx86_sse_op3_xmm_memindex(cp, op1, op2, op3, dxmm, breg, disp, ireg, shift, size) \
   do {                                                                  \
     const jx86_xmm_t _dxmm_ = (const jx86_xmm_t) (dxmm);                \
     const jx86_reg_t _breg_ = (const jx86_reg_t) (breg);                \
     const jx86_int32_t _disp_ = (const jx86_int32_t) (disp);            \
     const jx86_reg_t _ireg_ = (const jx86_reg_t) (ireg);                \
     const unsigned _shift_ = (const unsigned) (shift);                  \
+    const unsigned _size_ = (const unsigned) (size);                    \
     jx86_emit_uint8((cp), (op1));                                       \
-    jx86_emit_rex((cp), 0, _dxmm_, _ireg_, _breg_);                     \
+    jx86_emit_rex((cp), _size_, _dxmm_, _ireg_, _breg_);                \
     jx86_emit_uint16((cp), ((op3) << 8) | (op2));                       \
     jx86_emit_memindex((cp), _dxmm_, _breg_, _disp_, _ireg_, _shift_);  \
   } while (0)
 
-#define jx86_sse_op3_xmm_xmm(cp, op1, op2, op3, dxmm, sxmm)     \
-  do {                                                          \
-    const jx86_xmm_t _dxmm_ = (const jx86_xmm_t) (dxmm);        \
-    const jx86_xmm_t _sxmm_ = (const jx86_xmm_t) (sxmm);        \
-    jx86_emit_uint8((cp), (op1));                               \
-    jx86_emit_rex((cp), 0, _dxmm_, 0, _sxmm_);                  \
-    jx86_emit_uint16((cp), ((op3) << 8) | (op2));               \
-    jx86_emit_reg((cp), _dxmm_, _sxmm_);                        \
+#define jx86_sse_op3_xmm_xmm(cp, op1, op2, op3, dxmm, sxmm, size)    \
+  do {                                                               \
+    const jx86_xmm_t _dxmm_ = (const jx86_xmm_t) (dxmm);             \
+    const jx86_xmm_t _sxmm_ = (const jx86_xmm_t) (sxmm);             \
+    const unsigned _size_ = (const unsigned) (size);                 \
+    jx86_emit_uint8((cp), (op1));                                    \
+    jx86_emit_rex((cp), _size_, _dxmm_, 0, _sxmm_);                  \
+    jx86_emit_uint16((cp), ((op3) << 8) | (op2));                    \
+    jx86_emit_reg((cp), _dxmm_, _sxmm_);                             \
   } while (0)
 
 #define jx86_addsd_xmm_membase(cp, dxmm, breg, disp)                    \
-  jx86_sse_op3_xmm_membase((cp), 0xf2, 0x0f, 0x58, (dxmm), (breg), (disp))
+  jx86_sse_op3_xmm_membase((cp), 0xf2, 0x0f, 0x58, (dxmm), (breg), (disp), 0)
 #define jx86_addsd_xmm_xmm(cp, dxmm, sxmm)                              \
-  jx86_sse_op3_xmm_xmm((cp), 0xf2, 0x0f, 0x58, (dxmm), (sxmm))
+  jx86_sse_op3_xmm_xmm((cp), 0xf2, 0x0f, 0x58, (dxmm), (sxmm), 0)
 #define jx86_divsd_xmm_membase(cp, dxmm, breg, disp)                    \
-  jx86_sse_op3_xmm_membase((cp), 0xf2, 0x0f, 0x5e, (dxmm), (breg), (disp))
+  jx86_sse_op3_xmm_membase((cp), 0xf2, 0x0f, 0x5e, (dxmm), (breg), (disp), 0)
 #define jx86_divsd_xmm_xmm(cp, dxmm, sxmm)                              \
-  jx86_sse_op3_xmm_xmm((cp), 0xf2, 0x0f, 0x5e, (dxmm), (sxmm))
+  jx86_sse_op3_xmm_xmm((cp), 0xf2, 0x0f, 0x5e, (dxmm), (sxmm), 0)
 #define jx86_mulsd_xmm_membase(cp, dxmm, breg, disp)                    \
-  jx86_sse_op3_xmm_membase((cp), 0xf2, 0x0f, 0x59, (dxmm), (breg), (disp))
+  jx86_sse_op3_xmm_membase((cp), 0xf2, 0x0f, 0x59, (dxmm), (breg), (disp), 0)
 #define jx86_mulsd_xmm_xmm(cp, dxmm, sxmm)                              \
-  jx86_sse_op3_xmm_xmm((cp), 0xf2, 0x0f, 0x59, (dxmm), (sxmm))
+  jx86_sse_op3_xmm_xmm((cp), 0xf2, 0x0f, 0x59, (dxmm), (sxmm), 0)
 #define jx86_sqrtsd_xmm_membase(cp, dxmm, breg, disp)                   \
-  jx86_sse_op3_xmm_membase((cp), 0xf2, 0x0f, 0x51, (dxmm), (breg), (disp))
+  jx86_sse_op3_xmm_membase((cp), 0xf2, 0x0f, 0x51, (dxmm), (breg), (disp), 0)
 #define jx86_sqrtsd_xmm_xmm(cp, dxmm, sxmm)                             \
-  jx86_sse_op3_xmm_xmm((cp), 0xf2, 0x0f, 0x51, (dxmm), (sxmm))
+  jx86_sse_op3_xmm_xmm((cp), 0xf2, 0x0f, 0x51, (dxmm), (sxmm), 0)
 #define jx86_subsd_xmm_membase(cp, dxmm, breg, disp)                    \
-  jx86_sse_op3_xmm_membase((cp), 0xf2, 0x0f, 0x5c, (dxmm), (breg), (disp))
+  jx86_sse_op3_xmm_membase((cp), 0xf2, 0x0f, 0x5c, (dxmm), (breg), (disp), 0)
 #define jx86_subsd_xmm_xmm(cp, dxmm, sxmm)                              \
-  jx86_sse_op3_xmm_xmm((cp), 0xf2, 0x0f, 0x5c, (dxmm), (sxmm))
+  jx86_sse_op3_xmm_xmm((cp), 0xf2, 0x0f, 0x5c, (dxmm), (sxmm), 0)
 
 #define jx86_movhpd_membase_xmm(cp, breg, disp, sxmm)                   \
-  jx86_sse_op3_membase_xmm((cp), 0x66, 0x0f, 0x17, (breg), (disp), (sxmm))
+  jx86_sse_op3_membase_xmm((cp), 0x66, 0x0f, 0x17, (breg), (disp), (sxmm), 0)
 #define jx86_movhpd_xmm_membase(cp, dxmm, breg, disp)                   \
-  jx86_sse_op3_xmm_membase((cp), 0x66, 0x0f, 0x16, (dxmm), (breg), (disp))
+  jx86_sse_op3_xmm_membase((cp), 0x66, 0x0f, 0x16, (dxmm), (breg), (disp), 0)
 
 #define jx86_movlpd_membase_xmm(cp, breg, disp, sxmm)                   \
-  jx86_sse_op3_membase_xmm((cp), 0x66, 0x0f, 0x13, (breg), (disp), (sxmm))
+  jx86_sse_op3_membase_xmm((cp), 0x66, 0x0f, 0x13, (breg), (disp), (sxmm), 0)
 #define jx86_movlpd_memindex_xmm(cp, breg, disp, ireg, shift, sxmm)     \
-  jx86_sse_op3_memindex_xmm((cp), 0x66, 0x0f, 0x13, (breg), (disp), (ireg), (shift), (sxmm))
+  jx86_sse_op3_memindex_xmm((cp), 0x66, 0x0f, 0x13, (breg), (disp), (ireg), (shift), (sxmm), 0)
 #define jx86_movlpd_xmm_membase(cp, dxmm, breg, disp)                   \
-  jx86_sse_op3_xmm_membase((cp), 0x66, 0x0f, 0x12, (dxmm), (breg), (disp))
+  jx86_sse_op3_xmm_membase((cp), 0x66, 0x0f, 0x12, (dxmm), (breg), (disp), 0)
 #define jx86_movlpd_xmm_memindex(cp, dxmm, breg, disp, ireg, shift)     \
-  jx86_sse_op3_xmm_memindex((cp), 0x66, 0x0f, 0x12, (dxmm), (breg), (disp), (ireg), (shift))
+  jx86_sse_op3_xmm_memindex((cp), 0x66, 0x0f, 0x12, (dxmm), (breg), (disp), (ireg), (shift), 0)
 
 #define jx86_movsd_membase_xmm(cp, breg, disp, sxmm)                    \
-  jx86_sse_op3_membase_xmm((cp), 0xf2, 0x0f, 0x11, (breg), (disp), (sxmm))
+  jx86_sse_op3_membase_xmm((cp), 0xf2, 0x0f, 0x11, (breg), (disp), (sxmm), 0)
 #define jx86_movsd_memindex_xmm(cp, breg, disp, ireg, shift, sxmm)      \
-  jx86_sse_op3_memindex_xmm((cp), 0xf2, 0x0f, 0x11, (breg), (disp), (ireg), (shift), (sxmm))
+  jx86_sse_op3_memindex_xmm((cp), 0xf2, 0x0f, 0x11, (breg), (disp), (ireg), (shift), (sxmm), 0)
 #define jx86_movsd_xmm_membase(cp, dxmm, breg, disp)                    \
-  jx86_sse_op3_xmm_membase((cp), 0xf2, 0x0f, 0x10, (dxmm), (breg), (disp))
+  jx86_sse_op3_xmm_membase((cp), 0xf2, 0x0f, 0x10, (dxmm), (breg), (disp), 0)
 #define jx86_movsd_xmm_memindex(cp, dxmm, breg, disp, ireg, shift)      \
-  jx86_sse_op3_xmm_memindex((cp), 0xf2, 0x0f, 0x10, (dxmm), (breg), (disp), (ireg), (shift))
+  jx86_sse_op3_xmm_memindex((cp), 0xf2, 0x0f, 0x10, (dxmm), (breg), (disp), (ireg), (shift), 0)
 
 #define jx86_ucomisd_xmm_membase(cp, dxmm, breg, disp)                  \
-  jx86_sse_op3_xmm_membase((cp), 0x66, 0x0f, 0x2e, (dxmm), (breg), (disp))
+  jx86_sse_op3_xmm_membase((cp), 0x66, 0x0f, 0x2e, (dxmm), (breg), (disp), 0)
 #define jx86_ucomisd_xmm_xmm(cp, dxmm, sxmm)                            \
-  jx86_sse_op3_xmm_xmm((cp), 0x66, 0x0f, 0x2e, (dxmm), (sxmm))
+  jx86_sse_op3_xmm_xmm((cp), 0x66, 0x0f, 0x2e, (dxmm), (sxmm), 0)
+
+/* CVTSI2SD instruction
+ * --------------------
+ */
+
+#define jx86_cvtsi2sd_xmm_membase(cp, dxmm, breg, disp, size)           \
+  jx86_sse_op3_xmm_membase((cp), 0xf2, 0x0f, 0x2a, (dxmm), (breg), (disp), (size))
+#define jx86_cvtsi2sd_xmm_memindex(cp, dxmm, breg, disp, ireg, shift, size) \
+  jx86_sse_op3_xmm_memindex((cp), 0xf2, 0x0f, 0x2a, (dxmm), (breg), (disp), (ireg), (shift), (size))
+#define jx86_cvtsi2sd_xmm_reg(cp, dxmm, sreg, size)                     \
+  jx86_sse_op3_xmm_xmm((cp), 0xf2, 0x0f, 0x2a, (dxmm), (sreg), (size))
+
+#define jx86_cvtsi2sdl_xmm_membase(cp, dxmm, breg, disp)                jx86_cvtsi2sd_xmm_membase((cp), (dxmm), (breg), (disp), 4)
+#define jx86_cvtsi2sdl_xmm_memindex(cp, dxmm, breg, disp, ireg, shift)  jx86_cvtsi2sd_xmm_memindex((cp), (dxmm), (breg), (disp), (ireg), (shift), 4)
+#define jx86_cvtsi2sdl_xmm_reg(cp, dxmm, sreg)                          jx86_cvtsi2sd_xmm_reg((cp), (dxmm), (sreg), 4)
+#ifdef JX86_64
+# define jx86_cvtsi2sdq_xmm_membase(cp, dxmm, breg, disp)               jx86_cvtsi2sd_xmm_membase((cp), (dxmm), (breg), (disp), 8)
+# define jx86_cvtsi2sdq_xmm_memindex(cp, dxmm, breg, disp, ireg, shift) jx86_cvtsi2sd_xmm_memindex((cp), (dxmm), (breg), (disp), (ireg), (shift), 8)
+# define jx86_cvtsi2sdq_xmm_reg(cp, dxmm, sreg)                         jx86_cvtsi2sd_xmm_reg((cp), (dxmm), (sreg), 8)
+#endif /* JX86_64 */
+#define jx86_cvtsi2sdn_xmm_membase(cp, dxmm, breg, disp)                jx86_cvtsi2sd_xmm_membase((cp), (dxmm), (breg), (disp), JX86_NWS)
+#define jx86_cvtsi2sdn_xmm_memindex(cp, dxmm, breg, disp, ireg, shift)  jx86_cvtsi2sd_xmm_memindex((cp), (dxmm), (breg), (disp), (ireg), (shift), JX86_NWS)
+#define jx86_cvtsi2sdn_xmm_reg(cp, dxmm, sreg)                          jx86_cvtsi2sd_xmm_reg((cp), (dxmm), (sreg), JX86_NWS)
+
+/* CVTTSD2SI instruction
+ * ---------------------
+ */
+
+#define jx86_cvttsd2si_reg_membase(cp, dreg, breg, disp, size)          \
+  jx86_sse_op3_xmm_membase((cp), 0xf2, 0x0f, 0x2c, (dreg), (breg), (disp), (size))
+#define jx86_cvttsd2si_reg_memindex(cp, dreg, breg, disp, ireg, shift, size) \
+  jx86_sse_op3_xmm_memindex((cp), 0xf2, 0x0f, 0x2c, (dreg), (breg), (disp), (ireg), (shift), (size))
+#define jx86_cvttsd2si_reg_xmm(cp, dreg, sxmm, size)                    \
+  jx86_sse_op3_xmm_xmm((cp), 0xf2, 0x0f, 0x2c, (dreg), (sxmm), (size))
+
+#define jx86_cvttsd2sil_reg_membase(cp, dreg, breg, disp)                jx86_cvttsd2si_reg_membase((cp), (dreg), (breg), (disp), 4)
+#define jx86_cvttsd2sil_reg_memindex(cp, dreg, breg, ireg, shift, disp)  jx86_cvttsd2si_reg_memindex((cp), (dreg), (breg), (ireg), (shift), (disp), 4)
+#define jx86_cvttsd2sil_reg_xmm(cp, dreg, sxmm)                          jx86_cvttsd2si_reg_xmm((cp), (dreg), (sxmm), 4)
+#ifdef JX86_64
+# define jx86_cvttsd2siq_reg_membase(cp, dreg, breg, disp)               jx86_cvttsd2si_reg_membase((cp), (dreg), (breg), (disp), 8)
+# define jx86_cvttsd2siq_reg_memindex(cp, dreg, breg, ireg, shift, disp) jx86_cvttsd2si_reg_memindex((cp), (dreg), (breg), (ireg), (shift), (disp), 8)
+# define jx86_cvttsd2siq_reg_xmm(cp, dreg, sxmm)                         jx86_cvttsd2si_reg_xmm((cp), (dreg), (sxmm), 8)
+#endif /* JX86_64 */
+#define jx86_cvttsd2sin_reg_membase(cp, dreg, breg, disp)                jx86_cvttsd2si_reg_membase((cp), (dreg), (breg), (disp), JX86_NWS)
+#define jx86_cvttsd2sin_reg_memindex(cp, dreg, breg, ireg, shift, disp)  jx86_cvttsd2si_reg_memindex((cp), (dreg), (breg), (ireg), (shift), (disp), JX86_NWS)
+#define jx86_cvttsd2sin_reg_xmm(cp, dreg, sxmm)                          jx86_cvttsd2si_reg_xmm((cp), (dreg), (sxmm), JX86_NWS)
 
 #endif /* TARGET_amd64 || TARGET_i386 */
 

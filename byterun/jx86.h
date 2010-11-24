@@ -2324,6 +2324,15 @@ typedef enum
 #define jx86_movlpd_xmm_memindex(cp, dxmm, breg, disp, ireg, shift)     \
   jx86_sse_op3_xmm_memindex((cp), 0x66, 0x0f, 0x12, (dxmm), (breg), (disp), (ireg), (shift))
 
+#define jx86_movsd_membase_xmm(cp, breg, disp, sxmm)                    \
+  jx86_sse_op3_membase_xmm((cp), 0xf2, 0x0f, 0x11, (breg), (disp), (sxmm))
+#define jx86_movsd_memindex_xmm(cp, breg, disp, ireg, shift, sxmm)      \
+  jx86_sse_op3_memindex_xmm((cp), 0xf2, 0x0f, 0x11, (breg), (disp), (ireg), (shift), (sxmm))
+#define jx86_movsd_xmm_membase(cp, dxmm, breg, disp)                    \
+  jx86_sse_op3_xmm_membase((cp), 0xf2, 0x0f, 0x10, (dxmm), (breg), (disp))
+#define jx86_movsd_xmm_memindex(cp, dxmm, breg, disp, ireg, shift)      \
+  jx86_sse_op3_xmm_memindex((cp), 0xf2, 0x0f, 0x10, (dxmm), (breg), (disp), (ireg), (shift))
+
 #define jx86_ucomisd_xmm_membase(cp, dxmm, breg, disp)                  \
   jx86_sse_op3_xmm_membase((cp), 0x66, 0x0f, 0x2e, (dxmm), (breg), (disp))
 #define jx86_ucomisd_xmm_xmm(cp, dxmm, sxmm)                            \

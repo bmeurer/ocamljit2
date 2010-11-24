@@ -21,6 +21,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <limits.h>
+#include <math.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
@@ -46,7 +47,10 @@ extern value caml_array_unsafe_get_float(value, value);
 extern value caml_array_unsafe_set_float(value, value, value);
 
 /* from floats.c */
+extern value caml_abs_float(value);
 extern value caml_sqrt_float(value);
+extern value caml_cos_float(value);
+extern value caml_sin_float(value);
 extern value caml_add_float(value, value);
 extern value caml_sub_float(value, value);
 extern value caml_mul_float(value, value);
@@ -57,6 +61,8 @@ extern value caml_le_float(value, value);
 extern value caml_lt_float(value, value);
 extern value caml_ge_float(value, value);
 extern value caml_gt_float(value, value);
+extern value caml_atan2_float(value, value);
+extern value caml_fmod_float(value, value);
 
 /* from obj.c */
 extern value caml_cache_public_method2(value *, value, opcode_t *);
@@ -1584,9 +1590,25 @@ static void *caml_jit_compile(code_t pc)
       addr = Primitive(*pc++);
       if (addr == &caml_sqrt_float) {
         jx86_sqrtsd_xmm_membase(cp, JX86_XMM0, JX86_NAX, 0);
-        addr = &caml_jit_rt_copy_double;
-        goto c_call_float1;
+        goto copy_double;
       }
+#ifdef TARGET_amd64
+      else if (addr == &caml_abs_float) {
+        jx86_movsd_xmm_membase(cp, JX86_XMM0, JX86_RAX, 0);
+        jx86_call(cp, &fabs);
+        goto copy_double;
+      }
+      else if (addr == &caml_cos_float) {
+        jx86_movsd_xmm_membase(cp, JX86_XMM0, JX86_RAX, 0);
+        jx86_call(cp, &cos);
+        goto copy_double;
+      }
+      else if (addr == &caml_sin_float) {
+        jx86_movsd_xmm_membase(cp, JX86_XMM0, JX86_RAX, 0);
+        jx86_call(cp, &sin);
+        goto copy_double;
+      }
+#endif
       else {
         goto c_call;
       }
@@ -1597,13 +1619,7 @@ static void *caml_jit_compile(code_t pc)
         addr = &caml_jit_rt_add_float;
       c_call_float2:
         sp += CAML_JIT_WORD_SIZE;
-      c_call_float1:
-        if (sp != 0) {
-          jx86_addn_reg_imm(cp, CAML_JIT_NSP, sp);
-          sp = 0;
-        }
-        jx86_call(cp, addr);
-        break;
+        goto flush_call_addr;
       }
       else if (addr == &caml_sub_float) {
         addr = &caml_jit_rt_sub_float;
@@ -1661,6 +1677,21 @@ static void *caml_jit_compile(code_t pc)
         op = JX86_SETA;
         goto cmpfloat;
       }
+#ifdef TARGET_amd64
+      else if (addr == &caml_atan2_float) {
+        addr = &atan2;
+      call_float2_copy_double:
+        jx86_movq_reg_membase(cp, JX86_RCX, CAML_JIT_NSP, sp); sp += CAML_JIT_WORD_SIZE;
+        jx86_movsd_xmm_membase(cp, JX86_XMM0, JX86_RAX, 0);
+        jx86_movsd_xmm_membase(cp, JX86_XMM1, JX86_RCX, 0);
+        jx86_call(cp, addr);
+        goto copy_double;
+      }
+      else if (addr == &caml_fmod_float) {
+        addr = &fmod;
+        goto call_float2_copy_double;
+      }
+#endif
       else if (addr == &caml_array_unsafe_get_float) {
         jx86_movn_reg_membase(cp, JX86_NCX, CAML_JIT_NSP, sp); sp += CAML_JIT_WORD_SIZE;
         jx86_movsd_xmm_memindex(cp, JX86_XMM0, JX86_NAX, -4, JX86_NCX, 2);

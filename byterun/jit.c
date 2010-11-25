@@ -86,6 +86,13 @@ extern value caml_fill_string(value, value, value, value);
 /* forward declarations */
 static void *caml_jit_compile(code_t pc);
 
+/* native floating point primitive names (emulation on i386 to cope with %xmm registers) */
+#if defined(TARGET_amd64)
+# define CAML_JIT_FPPRIM(name) name
+#else
+# define CAML_JIT_FPPRIM(name) caml_jit_rt_##name##_float
+#endif
+
 /* native register assignment */
 #if defined(TARGET_amd64)
 # define CAML_JIT_NEP        JX86_R12 /* env */
@@ -1649,20 +1656,18 @@ static void *caml_jit_compile(code_t pc)
           addr = &caml_jit_rt_neg_float;
           goto c_call1_floatext;
         }
-#ifdef TARGET_amd64
         else if (addr == &caml_cos_float) {
-          addr = &cos;
+          addr = &CAML_JIT_FPPRIM(cos);
           goto c_call1_floatext;
         }
         else if (addr == &caml_sin_float) {
-          addr = &sin;
+          addr = &CAML_JIT_FPPRIM(sin);
           goto c_call1_floatext;
         }
         else if (addr == &caml_asin_float) {
-          addr = &asin;
+          addr = &CAML_JIT_FPPRIM(asin);
           goto c_call1_floatext;
         }
-#endif
         else if (addr == &caml_add_float) {
           jx86_movn_reg_membase(cp, JX86_NDX, CAML_JIT_NSP, sp); sp += CAML_JIT_WORD_SIZE;
           if (!state)
@@ -1741,19 +1746,17 @@ static void *caml_jit_compile(code_t pc)
           op = JX86_SETA;
           goto cmpfloat;
         }
-#ifdef TARGET_amd64
         else if (addr == &caml_atan2_float) {
-          addr = &atan2;
+          addr = &CAML_JIT_FPPRIM(atan2);
         c_call2_floatext:
           jx86_movn_reg_membase(cp, JX86_NDX, CAML_JIT_NSP, sp); sp += CAML_JIT_WORD_SIZE;
           jx86_movsd_xmm_membase(cp, JX86_XMM1, JX86_NDX, 0);
           goto c_call1_floatext;
         }
         else if (addr == &caml_fmod_float) {
-          addr = &fmod;
+          addr = &CAML_JIT_FPPRIM(fmod);
           goto c_call2_floatext;
         }
-#endif
         else if (addr == &caml_array_unsafe_get_float) {
           assert(!state);
           jx86_movn_reg_membase(cp, JX86_NCX, CAML_JIT_NSP, sp); sp += CAML_JIT_WORD_SIZE;

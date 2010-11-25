@@ -47,6 +47,13 @@ CAML_JIT_INTERNAL void  caml_jit_rt_mul_float();
 CAML_JIT_INTERNAL void  caml_jit_rt_div_float();
 CAML_JIT_INTERNAL void  caml_jit_rt_abs_float();
 CAML_JIT_INTERNAL void  caml_jit_rt_neg_float();
+#ifdef TARGET_i386
+CAML_JIT_INTERNAL void  caml_jit_rt_cos_float();
+CAML_JIT_INTERNAL void  caml_jit_rt_sin_float();
+CAML_JIT_INTERNAL void  caml_jit_rt_asin_float();
+CAML_JIT_INTERNAL void  caml_jit_rt_atan2_float();
+CAML_JIT_INTERNAL void  caml_jit_rt_fmod_float();
+#endif
 
 CAML_JIT_INTERNAL void  caml_jit_rt_copy_floats();
 

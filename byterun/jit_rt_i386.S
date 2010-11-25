@@ -56,7 +56,7 @@
 
 #endif
 
-        .section .rodata.cst8,"aM",@progbits
+        .data
         .p2align 4
 G(caml_jit_rt_neg_mask):
         .quad   0x8000000000000000, 0
@@ -594,6 +594,46 @@ FUNCTION(G(caml_jit_rt_neg_float))
         xorpd   G(caml_jit_rt_neg_mask), %xmm0
         ret
 
+FUNCTION(G(caml_jit_rt_cos_float))
+        subl    $(1*8), %esp
+        movsd   %xmm0, 0*8(%esp)
+        call    G(cos)
+L(caml_jit_rt_x87_return1):
+        fstpl   0*8(%esp)
+        movsd   0*8(%esp), %xmm0
+        addl    $(1*8), %esp
+        ret
+        
+FUNCTION(G(caml_jit_rt_sin_float))
+        subl    $(1*8), %esp
+        movsd   %xmm0, 0*8(%esp)
+        call    G(sin)
+        jmp     L(caml_jit_rt_x87_return1)
+        
+FUNCTION(G(caml_jit_rt_asin_float))
+        subl    $(1*8), %esp
+        movsd   %xmm0, 0*8(%esp)
+        call    G(asin)
+        jmp     L(caml_jit_rt_x87_return1)
+        
+FUNCTION(G(caml_jit_rt_atan2_float))
+        subl    $(2*8), %esp
+        movsd   %xmm1, 1*8(%esp)
+        movsd   %xmm0, 0*8(%esp)
+        call    G(atan2)
+L(caml_jit_rt_x86_return2):
+        fstpl   0*8(%esp)
+        movsd   0*8(%esp), %xmm0
+        addl    $(2*8), %esp
+        ret
+        
+FUNCTION(G(caml_jit_rt_fmod_float))
+        subl    $(2*8), %esp
+        movsd   %xmm1, 1*8(%esp)
+        movsd   %xmm0, 0*8(%esp)
+        call    G(fmod)
+        jmp     L(caml_jit_rt_x86_return2)
+        
 
 /* Copying operations */
 

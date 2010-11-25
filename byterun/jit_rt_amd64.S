@@ -137,7 +137,7 @@
 
 /* Andpd [srclabel] to [dstreg]. */
 #define ANDPD_VAR(srclabel, dstreg) \
-        xorpd   G(srclabel)(%rip), dstreg
+        andpd   G(srclabel)(%rip), dstreg
         
 /* Xorpd [srclabel] to [dstreg]. */
 #define XORPD_VAR(srclabel, dstreg) \
@@ -154,6 +154,7 @@
         .p2align 4
 G(caml_jit_rt_neg_mask):
         .quad   0x8000000000000000, 0
+        .p2align 4
 G(caml_jit_rt_abs_mask):
         .quad   0x7FFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF
 

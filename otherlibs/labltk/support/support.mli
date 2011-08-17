@@ -14,7 +14,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id$ *)
+(* $Id: support.mli 4745 2002-04-26 12:16:26Z furuse $ *)
 
 val split_str : pred:(char -> bool) -> string -> string list
 val may : ('a -> 'b) -> 'a option -> 'b option

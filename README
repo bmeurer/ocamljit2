@@ -21,7 +21,7 @@ native-code compiler currently runs on the following platforms:
 
 Tier 1 (actively used and maintained by the core Caml team):
 
-    AMD64 (Opteron)    Linux
+    AMD64 (Opteron)    Linux, MacOS X, MS Windows
     IA32 (Pentium)     Linux, FreeBSD, MacOS X, MS Windows
     PowerPC            MacOS X
 
@@ -135,4 +135,4 @@ You can also contact the implementors directly at caml@inria.fr.
 
 
 ----
-$Id$
+$Id: README 11017 2011-04-29 09:10:12Z doligez $

@@ -20,7 +20,7 @@ open Camltk
  * jargon).
 *)
 
-let version = "$Id$"
+let version = "$Id: frx_req.ml 9547 2010-01-22 12:48:24Z doligez $"
 
 (*
  * Simple requester

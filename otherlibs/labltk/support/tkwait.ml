@@ -14,7 +14,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id$ *)
+(* $Id: tkwait.ml 9358 2009-09-25 12:56:10Z weis $ *)
 
 external internal_tracevis : string -> Protocol.cbid -> unit
         = "camltk_wait_vis"

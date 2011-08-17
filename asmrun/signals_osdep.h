@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id$ */
+/* $Id: signals_osdep.h 9270 2009-05-20 11:52:42Z doligez $ */
 
 /* Processor- and OS-dependent signal interface */
 

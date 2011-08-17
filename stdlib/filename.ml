@@ -11,7 +11,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id$ *)
+(* $Id: filename.ml 9540 2010-01-20 16:26:46Z doligez $ *)
 
 let generic_quote quotequote s =
   let l = String.length s in

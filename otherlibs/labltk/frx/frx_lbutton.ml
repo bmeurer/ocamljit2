@@ -18,7 +18,7 @@ open Camltk
 open Widget
 
 
-let version = "$Id$"
+let version = "$Id: frx_lbutton.ml 4745 2002-04-26 12:16:26Z furuse $"
 
 (*
  * Simulate a button with a bitmap AND a label

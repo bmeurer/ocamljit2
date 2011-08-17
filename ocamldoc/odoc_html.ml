@@ -9,7 +9,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id$ *)
+(* $Id: odoc_html.ml 11023 2011-05-02 13:55:00Z guesdon $ *)
 
 (** Generation of html documentation.*)
 
@@ -532,28 +532,34 @@ class virtual info =
       match l with
         [] -> ()
       | _ ->
-          bp b "<b>%s:</b> %s<br>\n"
-            Odoc_messages.authors
-            (String.concat ", " l)
+          bp b "<b>%s:</b> " Odoc_messages.authors;
+          self#html_of_text b [Raw (String.concat ", " l)];
+          bs b "<br>\n"
 
     (** Print html code for the given optional version information.*)
     method html_of_version_opt b v_opt =
       match v_opt with
         None -> ()
       | Some v ->
-           bp b "<b>%s:</b> %s<br>\n" Odoc_messages.version v
+           bp b "<b>%s:</b> " Odoc_messages.version;
+           self#html_of_text b [Raw v];
+           bs b "<br>\n"
 
     (** Print html code for the given optional since information.*)
     method html_of_since_opt b s_opt =
       match s_opt with
         None -> ()
       | Some s ->
-          bp b "<b>%s</b> %s<br>\n" Odoc_messages.since s
+          bp b "<b>%s</b> " Odoc_messages.since;
+          self#html_of_text b [Raw s];
+          bs b "<br>\n"
 
     (** Print html code for the given "before" information.*)
     method html_of_before b l =
       let f (v, text) =
-        bp b "<b>%s %s </b> " Odoc_messages.before v;
+        bp b "<b>%s " Odoc_messages.before;
+        self#html_of_text b [Raw v];
+        bs b " </b> ";
         self#html_of_text b text;
         bs b "<br>\n"
       in
@@ -726,8 +732,10 @@ class html =
 
     val mutable doctype =
       "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\">\n"
-    val mutable character_encoding =
-      "<meta content=\"text/html; charset=iso-8859-1\" http-equiv=\"Content-Type\">\n"
+    method character_encoding () =
+      Printf.sprintf
+        "<meta content=\"text/html; charset=%s\" http-equiv=\"Content-Type\">\n"
+        !Odoc_info.Args.charset
 
     (** The default style options. *)
     val mutable default_style_options =
@@ -935,7 +943,7 @@ class html =
         in
         bs b "<head>\n";
         bs b style;
-        bs b character_encoding ;
+        bs b (self#character_encoding ()) ;
         bs b "<link rel=\"Start\" href=\"";
         bs b self#index;
         bs b "\">\n" ;

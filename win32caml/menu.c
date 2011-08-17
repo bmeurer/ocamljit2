@@ -15,7 +15,7 @@
 /* Began 14 Sept 2003 - watford@uiuc.edu                               */
 /***********************************************************************/
 
-/* $Id$ */
+/* $Id: menu.c 7411 2006-05-09 16:03:48Z xleroy $ */
 
 #include <stdio.h>
 #include <windows.h>

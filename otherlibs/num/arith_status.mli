@@ -11,7 +11,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id$ *)
+(* $Id: arith_status.mli 9547 2010-01-22 12:48:24Z doligez $ *)
 
 (** Flags that control rational arithmetic. *)
 

@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id$ *)
+(* $Id: primreq.ml 7469 2006-07-05 12:09:18Z pouillar $ *)
 
 (* Determine the set of C primitives required by the given .cmo and .cma
    files *)

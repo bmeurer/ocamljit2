@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: parsecmmaux.mli 2553 1999-11-17 18:59:06Z xleroy $ *)
+(* $Id: parsecmmaux.mli 10713 2010-10-08 11:53:19Z doligez $ *)
 
 (* Auxiliary functions for parsing *)
 

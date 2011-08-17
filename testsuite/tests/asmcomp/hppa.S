@@ -10,7 +10,7 @@
 ;*                                                                   *
 ;*********************************************************************
 
-; $Id: hppa.S 2553 1999-11-17 18:59:06Z xleroy $
+; $Id: hppa.S 10713 2010-10-08 11:53:19Z doligez $
 ; Must be preprocessed by cpp
 
 #ifdef SYS_hpux

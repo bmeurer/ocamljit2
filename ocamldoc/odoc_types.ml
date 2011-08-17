@@ -9,7 +9,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id$ *)
+(* $Id: odoc_types.ml 10867 2010-11-29 12:49:46Z xclerc $ *)
 
 type ref_kind =
     RK_module
@@ -103,6 +103,7 @@ type merge_option =
   | Merge_version
   | Merge_see
   | Merge_since
+  | Merge_before
   | Merge_deprecated
   | Merge_param
   | Merge_raised_exception
@@ -115,6 +116,7 @@ let all_merge_options = [
   Merge_version ;
   Merge_see ;
   Merge_since ;
+  Merge_before ;
   Merge_deprecated ;
   Merge_param ;
   Merge_raised_exception ;

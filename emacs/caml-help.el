@@ -10,7 +10,7 @@
 ;(*                                                                     *)
 ;(***********************************************************************)
 
-;(* $Id$ *)
+;(* $Id: caml-help.el 10323 2010-04-28 11:11:07Z remy $ *)
 
 ;; caml-info.el --- contextual completion and help to caml-mode
 

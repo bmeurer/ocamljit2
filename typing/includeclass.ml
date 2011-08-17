@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id$ *)
+(* $Id: includeclass.ml 10541 2010-06-08 08:43:38Z garrigue $ *)
 
 (* Inclusion checks for the class language *)
 

@@ -11,10 +11,13 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id$ */
+/* $Id: close.c 11030 2011-05-09 11:38:43Z doligez $ */
 
 #include <mlvalues.h>
 #include "unixsupport.h"
+#include <io.h>
+
+extern int _close(int);
 
 CAMLprim value unix_close(value fd)
 {
@@ -24,9 +27,17 @@ CAMLprim value unix_close(value fd)
       uerror("close", Nothing);
     }
   } else {
-    if (! CloseHandle(Handle_val(fd))) {
-      win32_maperr(GetLastError());
-      uerror("close", Nothing);
+    /* If we have an fd then closing it also closes
+     * the underlying handle. Also, closing only
+     * the handle and not the fd leads to fd leaks. */
+    if (CRT_fd_val(fd) != NO_CRT_FD) {
+      if (_close(CRT_fd_val(fd)) != 0)
+         uerror("close", Nothing);
+    } else {
+      if (! CloseHandle(Handle_val(fd))) {
+        win32_maperr(GetLastError());
+        uerror("close", Nothing);
+      }
     }
   }
   return Val_unit;

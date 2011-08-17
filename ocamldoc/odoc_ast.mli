@@ -9,7 +9,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id$ *)
+(* $Id: odoc_ast.mli 9547 2010-01-22 12:48:24Z doligez $ *)
 
 (** The module for analysing the typed abstract syntax tree and source code and creating modules, classes, ..., elements.*)
 

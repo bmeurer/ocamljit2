@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id$ *)
+(* $Id: asmlink.ml 11049 2011-05-17 14:14:38Z doligez $ *)
 
 (* Link a set of .cmx/.o files and produce an executable *)
 
@@ -262,7 +262,7 @@ let link_shared ppf objfiles output_name =
   Clflags.ccobjs := !Clflags.ccobjs @ !lib_ccobjs;
   Clflags.ccopts := !lib_ccopts @ !Clflags.ccopts;
   let objfiles = List.rev (List.map object_file_name objfiles) @
-    !Clflags.ccobjs in
+    (List.rev !Clflags.ccobjs) in
 
   let startup =
     if !Clflags.keep_startup_file

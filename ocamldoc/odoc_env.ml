@@ -9,7 +9,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id$ *)
+(* $Id: odoc_env.ml 9547 2010-01-22 12:48:24Z doligez $ *)
 
 (** Environment for finding complete names from relative names. *)
 
@@ -246,4 +246,4 @@ let subst_class_type env t =
   in
   iter t
 
-(* eof $Id$ *)
+(* eof $Id: odoc_env.ml 9547 2010-01-22 12:48:24Z doligez $ *)

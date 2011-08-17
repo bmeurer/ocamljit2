@@ -11,13 +11,14 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id$ */
+/* $Id: lseek.c 10647 2010-08-18 12:44:33Z doligez $ */
 
 #include <errno.h>
 #include <sys/types.h>
 #include <mlvalues.h>
 #include <alloc.h>
 #include <io.h>
+#include <signals.h>
 #include "unixsupport.h"
 
 #ifdef HAS_UNISTD

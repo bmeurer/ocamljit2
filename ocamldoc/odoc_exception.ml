@@ -9,7 +9,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id$ *)
+(* $Id: odoc_exception.ml 9547 2010-01-22 12:48:24Z doligez $ *)
 
 (** Representation and manipulation of exceptions. *)
 

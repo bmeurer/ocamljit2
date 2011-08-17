@@ -10,7 +10,7 @@
 ;(*                                                                     *)
 ;(***********************************************************************)
 
-;(* $Id$ *)
+;(* $Id: caml-emacs.el 10662 2010-08-30 15:15:33Z doligez $ *)
 
 ;; for caml-help.el
 (defalias 'caml-info-other-window 'info-other-window)
@@ -39,5 +39,8 @@
          (or (member 'drag modifiers)
              (member 'click modifiers)))))
 
+(if (fboundp 'string-to-number)
+   (defalias 'caml-string-to-int 'string-to-number)
+ (defalias 'caml-string-to-int 'string-to-int))
 
 (provide 'caml-emacs)

@@ -10,7 +10,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: grammar.mly,v 1.4 1999/11/17 18:58:38 xleroy Exp $ */
+/* $Id: grammar.mly 10713 2010-10-08 11:53:19Z doligez $ */
 
 /* The grammar for lexer definitions */
 

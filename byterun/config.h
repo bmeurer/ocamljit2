@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id$ */
+/* $Id: config.h 10787 2010-11-10 15:47:34Z doligez $ */
 
 #ifndef CAML_CONFIG_H
 #define CAML_CONFIG_H
@@ -135,7 +135,7 @@ typedef struct { uint32 l, h; } uint64, int64;
 #define Minor_heap_max (1 << 28)
 
 /* Default size of the minor zone. (words)  */
-#define Minor_heap_def 32768
+#define Minor_heap_def 262144
 
 
 /* Minimum size increment when growing the heap (words).

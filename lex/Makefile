@@ -10,7 +10,7 @@
 #                                                                       #
 #########################################################################
 
-# $Id$
+# $Id: Makefile 9467 2009-12-09 09:52:47Z weis $
 
 # The lexer generator
 CAMLC=../boot/ocamlrun ../boot/ocamlc -strict-sequence -nostdlib -I ../boot

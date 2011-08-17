@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id$ *)
+(* $Id: typeopt.mli 2873 2000-02-28 15:45:50Z xleroy $ *)
 
 (* Auxiliaries for type-based optimizations, e.g. array kinds *)
 

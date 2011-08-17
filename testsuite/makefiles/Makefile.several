@@ -1,4 +1,4 @@
-# $Id$
+# $Id: Makefile.several 10713 2010-10-08 11:53:19Z doligez $
 
 CC=$(NATIVECC) $(NATIVECCCOMPOPTS)
 FC=$(FORTAN_COMPILER)

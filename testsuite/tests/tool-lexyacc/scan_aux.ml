@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: scan_aux.ml,v 1.4 1999/11/17 18:58:39 xleroy Exp $ *)
+(* $Id: scan_aux.ml 10713 2010-10-08 11:53:19Z doligez $ *)
 
 (* Auxiliaries for the lexical analyzer *)
 

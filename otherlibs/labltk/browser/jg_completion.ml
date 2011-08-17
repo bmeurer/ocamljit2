@@ -12,7 +12,7 @@
 (*                                                                       *)
 (*************************************************************************)
 
-(* $Id$ *)
+(* $Id: jg_completion.ml 10250 2010-04-08 03:58:41Z garrigue $ *)
 
 let lt_string ?(nocase=false) s1 s2 =
   if nocase then String.lowercase s1 < String.lowercase s2 else s1 < s2

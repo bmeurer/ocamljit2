@@ -12,7 +12,7 @@
 (*                                                                       *)
 (*************************************************************************)
 
-(* $Id$ *)
+(* $Id: jg_memo.mli 4144 2001-12-07 13:41:02Z xleroy $ *)
 
 val fast : f:('a -> 'b) -> 'a -> 'b
 (* "fast" memoizer: uses a List.assq like function      *)

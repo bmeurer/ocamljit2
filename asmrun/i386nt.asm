@@ -11,7 +11,7 @@
 ;
 ;*********************************************************************
 
-; $Id$
+; $Id: i386nt.asm 9547 2010-01-22 12:48:24Z doligez $
 
 ; Asm part of the runtime system, Intel 386 processor, Intel syntax
 

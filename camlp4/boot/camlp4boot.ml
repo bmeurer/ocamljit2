@@ -40,19 +40,19 @@ module R =
         let help_sequences () =
           (Printf.eprintf
              "\
-New syntax:\n\
-    (e1; e2; ... ; en) OR begin e1; e2; ... ; en end\n\
-    while e do e1; e2; ... ; en done\n\
-    for v = v1 to/downto v2 do e1; e2; ... ; en done\n\
-Old syntax (still supported):\n\
-    do {e1; e2; ... ; en}\n\
-    while e do {e1; e2; ... ; en}\n\
-    for v = v1 to/downto v2 do {e1; e2; ... ; en}\n\
-Very old (no more supported) syntax:\n\
-    do e1; e2; ... ; en-1; return en\n\
-    while e do e1; e2; ... ; en; done\n\
-    for v = v1 to/downto v2 do e1; e2; ... ; en; done\n\
-  ";
+New syntax:\
+\n    (e1; e2; ... ; en) OR begin e1; e2; ... ; en end\
+\n    while e do e1; e2; ... ; en done\
+\n    for v = v1 to/downto v2 do e1; e2; ... ; en done\
+\nOld syntax (still supported):\
+\n    do {e1; e2; ... ; en}\
+\n    while e do {e1; e2; ... ; en}\
+\n    for v = v1 to/downto v2 do {e1; e2; ... ; en}\
+\nVery old (no more supported) syntax:\
+\n    do e1; e2; ... ; en-1; return en\
+\n    while e do e1; e2; ... ; en; done\
+\n    for v = v1 to/downto v2 do e1; e2; ... ; en; done\
+\n";
            flush stderr;
            exit 1)
           
@@ -1406,7 +1406,16 @@ Very old (no more supported) syntax:\n\
                              (fun _ (sg : 'sig_items) _ (_loc : Gram.Loc.t)
                                 -> (Ast.MtSig (_loc, sg) : 'module_type)))) ]);
                       ((Some "simple"), None,
-                       [ ([ Gram.Skeyword "("; Gram.Sself; Gram.Skeyword ")" ],
+                       [ ([ Gram.Skeyword "module"; Gram.Skeyword "type";
+                            Gram.Skeyword "of";
+                            Gram.Snterm
+                              (Gram.Entry.obj
+                                 (module_expr : 'module_expr Gram.Entry.t)) ],
+                          (Gram.Action.mk
+                             (fun (me : 'module_expr) _ _ _
+                                (_loc : Gram.Loc.t) ->
+                                (Ast.MtOf (_loc, me) : 'module_type))));
+                         ([ Gram.Skeyword "("; Gram.Sself; Gram.Skeyword ")" ],
                           (Gram.Action.mk
                              (fun _ (mt : 'module_type) _ (_loc : Gram.Loc.t)
                                 -> (mt : 'module_type))));
@@ -9450,7 +9459,11 @@ module Camlp4QuotationCommon =
                          | "`flo" ->
                              Ast.ExApp (_loc,
                                (Ast.ExId (_loc,
-                                  (Ast.IdLid (_loc, "string_of_float")))),
+                                  (Ast.IdAcc (_loc,
+                                     (Ast.IdUid (_loc, "Camlp4_import")),
+                                        (Ast.IdAcc (_loc,
+                                           (Ast.IdUid (_loc, "Oprint")),
+                                           (Ast.IdLid (_loc, "float_repres")))))))),
                                e)
                          | "`str" ->
                              Ast.ExApp (_loc,
@@ -14694,7 +14707,7 @@ module L =
  *)
     module Id =
       struct
-        let name = "Camlp4ListComprenhsion"
+        let name = "Camlp4ListComprehension"
           
         let version = Sys.ocaml_version
           

@@ -10,7 +10,7 @@
 ;(*                                                                     *)
 ;(***********************************************************************)
 
-;(* $Id$ *)
+;(* $Id: caml-xemacs.el 10662 2010-08-30 15:15:33Z doligez $ *)
 
 (require 'overlay)
 
@@ -49,5 +49,9 @@
 (defun caml-release-event-p (original event)
   (and (button-release-event-p event)
        (equal (event-button original) (event-button event))))
+
+(if (fboundp 'string-to-number)
+   (defalias 'caml-string-to-int 'string-to-number)
+ (defalias 'caml-string-to-int 'string-to-int))
 
 (provide 'caml-xemacs)

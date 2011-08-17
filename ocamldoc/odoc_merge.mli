@@ -9,7 +9,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id$ *)
+(* $Id: odoc_merge.mli 10480 2010-05-31 11:52:13Z guesdon $ *)
 
 (** Merge of information from [.ml] and [.mli] for a module.*)
 

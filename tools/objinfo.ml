@@ -13,7 +13,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id$ *)
+(* $Id: objinfo.ml 10459 2010-05-24 14:27:50Z xleroy $ *)
 
 (* Dump info on .cmi, .cmo, .cmx, .cma, .cmxa, .cmxs files
    and on bytecode executables. *)

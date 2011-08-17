@@ -9,7 +9,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id$ *)
+(* $Id: odoc_info.ml 10480 2010-05-31 11:52:13Z guesdon $ *)
 
 (** Interface for analysing documented OCaml source files and to the collected information. *)
 

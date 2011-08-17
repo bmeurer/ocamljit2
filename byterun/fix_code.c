@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id$ */
+/* $Id: fix_code.c 9547 2010-01-22 12:48:24Z doligez $ */
 
 /* Handling of blocks of bytecode (endianness switch, threading). */
 

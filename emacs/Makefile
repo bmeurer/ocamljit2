@@ -10,7 +10,7 @@
 #                                                                       #
 #########################################################################
 
-# $Id$
+# $Id: Makefile 10661 2010-08-30 10:16:22Z doligez $
 
 include ../config/Makefile
 
@@ -72,5 +72,9 @@ ocamltags:	ocamltags.in
 install-ocamltags: ocamltags
 	cp ocamltags $(SCRIPTDIR)/ocamltags
 
+# This is for testing purposes
+compile-only:
+	$(EMACS) --batch --eval '$(COMPILECMD)'
+
 clean:
-	rm -f ocamltags *~ #*#
+	rm -f ocamltags *~ #*# *.elc

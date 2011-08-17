@@ -10,7 +10,7 @@
 (*                                                                       *)
 (*************************************************************************)
 
-(* $Id: tformat.ml 9270 2009-05-20 11:52:42Z doligez $
+(* $Id: tformat.ml 10713 2010-10-08 11:53:19Z doligez $
 
 A testbed file for the module Format.
 

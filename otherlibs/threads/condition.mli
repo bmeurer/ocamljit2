@@ -11,7 +11,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id$ *)
+(* $Id: condition.mli 9547 2010-01-22 12:48:24Z doligez $ *)
 
 (** Condition variables to synchronize between threads.
 

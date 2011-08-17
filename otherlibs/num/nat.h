@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id$ */
+/* $Id: nat.h 9547 2010-01-22 12:48:24Z doligez $ */
 
 /* Nats are represented as unstructured blocks with tag Custom_tag. */
 

@@ -12,7 +12,7 @@
 (*                                                                       *)
 (*************************************************************************)
 
-(* $Id$ *)
+(* $Id: searchid.mli 5044 2002-07-25 22:51:47Z garrigue $ *)
 
 val start_env : Env.t ref
 val module_list : string list ref

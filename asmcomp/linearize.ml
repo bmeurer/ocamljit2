@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id$ *)
+(* $Id: linearize.ml 9547 2010-01-22 12:48:24Z doligez $ *)
 
 (* Transformation of Mach code into a list of pseudo-instructions. *)
 

@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id$ *)
+(* $Id: compilenv.mli 10424 2010-05-19 11:29:38Z xleroy $ *)
 
 (* Compilation environments for compilation units *)
 

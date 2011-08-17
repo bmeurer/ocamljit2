@@ -1,4 +1,4 @@
-# $Id$
+# $Id: Makefile 10425 2010-05-19 11:33:23Z doligez $
 
 OTHERSLIB=-I $(OTHERS)/unix -I $(OTHERS)/str
 

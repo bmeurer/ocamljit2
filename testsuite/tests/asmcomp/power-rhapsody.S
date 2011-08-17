@@ -10,7 +10,7 @@
 /*                                                                   */
 /*********************************************************************/
 
-/* $Id: power-rhapsody.S 2553 1999-11-17 18:59:06Z xleroy $ */
+/* $Id: power-rhapsody.S 10713 2010-10-08 11:53:19Z doligez $ */
 
 /* Save and restore all callee-save registers */
 /* GPR 14 at sp+16 ... GPR 31 at sp+84

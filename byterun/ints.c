@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id$ */
+/* $Id: ints.c 11037 2011-05-12 14:34:05Z xleroy $ */
 
 #include <stdio.h>
 #include <string.h>
@@ -614,7 +614,7 @@ static void nativeint_serialize(value v, uintnat * wsize_32,
 {
   intnat l = Nativeint_val(v);
 #ifdef ARCH_SIXTYFOUR
-  if (l <= 0x7FFFFFFFL && l >= -0x80000000L) {
+  if (l >= -((intnat)1 << 31) && l < ((intnat)1 << 31)) {
     caml_serialize_int_1(1);
     caml_serialize_int_4((int32) l);
   } else {

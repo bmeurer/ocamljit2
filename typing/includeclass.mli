@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id$ *)
+(* $Id: includeclass.mli 2908 2000-03-06 22:12:09Z weis $ *)
 
 (* Inclusion checks for the class language *)
 

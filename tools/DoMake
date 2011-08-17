@@ -1,6 +1,6 @@
 # DoMake
 
-# $Id$
+# $Id: DoMake 9547 2010-01-22 12:48:24Z doligez $
 
 # Execute the output of "Make -f Makefile.Mac -f Makefile.Mac.depend"
 # or "Make -f Makefile -f Makefile.depend" if "Makefile.Mac" does not exist

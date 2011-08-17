@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id$ *)
+(* $Id: includecore.mli 10455 2010-05-21 15:13:47Z garrigue $ *)
 
 (* Inclusion checks for the core language *)
 

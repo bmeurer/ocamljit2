@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id$ *)
+(* $Id: outcometree.mli 9397 2009-10-26 10:53:16Z frisch $ *)
 
 (* Module [Outcometree]: results displayed by the toplevel *)
 

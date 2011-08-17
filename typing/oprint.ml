@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id$ *)
+(* $Id: oprint.ml 11051 2011-05-18 15:01:07Z xclerc $ *)
 
 open Format
 open Outcometree
@@ -32,7 +32,7 @@ let parenthesized_ident name =
   (List.mem name ["or"; "mod"; "land"; "lor"; "lxor"; "lsl"; "lsr"; "asr"])
   ||
   (match name.[0] with
-      'a'..'z' | '\223'..'\246' | '\248'..'\255' | '_' ->
+      'a'..'z' | 'A'..'Z' | '\223'..'\246' | '\248'..'\255' | '_' ->
         false
     | _ -> true)
 

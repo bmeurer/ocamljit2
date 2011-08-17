@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id$ */
+/* $Id: bigarray.h 9153 2008-12-03 18:09:09Z doligez $ */
 
 #ifndef CAML_BIGARRAY_H
 #define CAML_BIGARRAY_H

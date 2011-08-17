@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: quicksort.ml 7017 2005-08-12 09:22:04Z xleroy $ *)
+(* $Id: quicksort.ml 10713 2010-10-08 11:53:19Z doligez $ *)
 
 (* Good test for loops. Best compiled with -unsafe. *)
 

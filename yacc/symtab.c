@@ -12,7 +12,7 @@
 
 /* Based on public-domain code from Berkeley Yacc */
 
-/* $Id$ */
+/* $Id: symtab.c 3573 2001-07-12 12:54:24Z doligez $ */
 
 #include <string.h>
 #include "defs.h"

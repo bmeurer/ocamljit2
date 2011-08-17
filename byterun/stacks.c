@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id$ */
+/* $Id: stacks.c 10793 2010-11-11 11:07:48Z xleroy $ */
 
 /* To initialize and resize the stacks */
 
@@ -28,7 +28,7 @@ CAMLexport value * caml_stack_threshold;
 CAMLexport value * caml_extern_sp;
 CAMLexport value * caml_trapsp;
 CAMLexport value * caml_trap_barrier;
-value caml_global_data;
+value caml_global_data = 0;
 
 uintnat caml_max_stack_size;            /* also used in gc_ctrl.c */
 

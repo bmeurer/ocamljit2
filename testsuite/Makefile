@@ -1,4 +1,4 @@
-# $Id$
+# $Id: Makefile 10713 2010-10-08 11:53:19Z doligez $
 
 BASEDIR=${PWD}
 NO_PRINT=`($(MAKE) empty --no-print-directory > /dev/null 2>&1) && echo '--no-print-directory' || echo ''`

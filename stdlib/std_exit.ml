@@ -11,7 +11,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id$ *)
+(* $Id: std_exit.ml 4144 2001-12-07 13:41:02Z xleroy $ *)
 
 (* Ensure that [at_exit] functions are called at the end of every program *)
 

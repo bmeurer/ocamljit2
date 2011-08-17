@@ -11,7 +11,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id$ *)
+(* $Id: symbols.mli 7031 2005-08-25 15:35:16Z doligez $ *)
 
 (* Modules used by the program. *)
 val modules : string list ref

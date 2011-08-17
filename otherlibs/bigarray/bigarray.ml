@@ -11,7 +11,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id$ *)
+(* $Id: bigarray.ml 8911 2008-07-14 09:09:53Z xleroy $ *)
 
 (* Module [Bigarray]: large, multi-dimensional, numerical arrays *)
 

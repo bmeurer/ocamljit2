@@ -11,7 +11,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id$ *)
+(* $Id: odoc_ocamlhtml.mll 9547 2010-01-22 12:48:24Z doligez $ *)
 
 (** Generation of html code to display OCaml code. *)
 open Lexing

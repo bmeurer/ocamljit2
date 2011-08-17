@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id$ *)
+(* $Id: selectgen.ml 10667 2010-09-02 13:29:21Z xclerc $ *)
 
 (* Selection of pseudo-instructions, assignment of pseudo-registers,
    sequentialization. *)
@@ -824,3 +824,17 @@ method emit_fundecl f =
     fun_fast = f.Cmm.fun_fast }
 
 end
+
+(* Tail call criterion (estimated).  Assumes:
+- all arguments are of type "int" (always the case for Caml function calls)
+- one extra argument representing the closure environment (conservative).
+*)
+
+let is_tail_call nargs =
+  assert (Reg.dummy.typ = Int);
+  let args = Array.make (nargs + 1) Reg.dummy in
+  let (loc_arg, stack_ofs) = Proc.loc_arguments args in
+  stack_ofs = 0
+
+let _ =
+  Simplif.is_tail_native_heuristic := is_tail_call

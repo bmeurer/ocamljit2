@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id$ */
+/* $Id: ui.h 6021 2003-12-15 18:10:51Z doligez $ */
 
 /* Function declarations for non-Unix user interfaces */
 

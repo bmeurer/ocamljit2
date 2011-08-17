@@ -9,7 +9,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id$ *)
+(* $Id: odoc_env.mli 9547 2010-01-22 12:48:24Z doligez $ *)
 
 (** Environment for finding complete names from relative names. *)
 

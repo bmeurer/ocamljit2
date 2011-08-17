@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id$ */
+/* $Id: mips.s 6552 2004-07-13 12:19:15Z xleroy $ */
 
 /* Asm part of the runtime system, Mips processor, IRIX n32 conventions */
 

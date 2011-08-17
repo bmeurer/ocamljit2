@@ -11,7 +11,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id$ *)
+(* $Id: big_int.ml 10649 2010-08-18 13:22:48Z doligez $ *)
 
 open Int_misc
 open Nat
@@ -698,7 +698,9 @@ let shift_right_towards_zero_big_int bi n =
         let tmp = create_nat 1 in
         shift_right_nat res 0 size_res tmp 0 nbits
       end;
-      { sign = bi.sign; abs_value = res }
+      if is_zero_nat res 0 size_res
+      then zero_big_int
+      else { sign = bi.sign; abs_value = res }
     end
   end
 

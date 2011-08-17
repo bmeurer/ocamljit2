@@ -11,7 +11,7 @@
 #                                                                       #
 #########################################################################
 
-# $Id$
+# $Id: Makefile 8748 2008-01-04 09:52:27Z xleroy $
 
 LIBNAME=bigarray
 EXTRACFLAGS=-I../unix -DIN_OCAML_BIGARRAY -DCAML_NAME_SPACE

@@ -11,7 +11,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id$ *)
+(* $Id: stringLabels.ml 6054 2004-01-03 22:08:38Z doligez $ *)
 
 (* Module [StringLabels]: labelled String module *)
 

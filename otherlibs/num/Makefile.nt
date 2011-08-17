@@ -11,7 +11,7 @@
 #                                                                       #
 #########################################################################
 
-# $Id$
+# $Id: Makefile.nt 10337 2010-04-30 13:27:35Z frisch $
 
 # Makefile for the "num" (exact rational arithmetic) library
 

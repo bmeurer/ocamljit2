@@ -12,7 +12,7 @@
 
 /* Based on public-domain code from Berkeley Yacc */
 
-/* $Id$ */
+/* $Id: output.c 9547 2010-01-22 12:48:24Z doligez $ */
 
 #include "defs.h"
 

@@ -10,7 +10,7 @@
 ;(*                                                                     *)
 ;(***********************************************************************)
 
-;(* $Id$ *)
+;(* $Id: caml-compat.el 9547 2010-01-22 12:48:24Z doligez $ *)
 
 ;; function definitions for old versions of emacs
 

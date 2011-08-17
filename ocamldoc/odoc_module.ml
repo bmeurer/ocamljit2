@@ -9,7 +9,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id$ *)
+(* $Id: odoc_module.ml 10355 2010-05-03 15:06:17Z guesdon $ *)
 
 (** Representation and manipulation of modules and module types. *)
 

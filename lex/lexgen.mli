@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id$ *)
+(* $Id: lexgen.mli 9547 2010-01-22 12:48:24Z doligez $ *)
 
 
 (* raised when there are too many bindings (>= 254 memory cells) *)

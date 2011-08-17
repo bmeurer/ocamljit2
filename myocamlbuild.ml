@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id$ *)
+(* $Id: myocamlbuild.ml 10941 2011-02-08 14:07:47Z xclerc $ *)
 
 open Ocamlbuild_plugin
 open Command
@@ -683,6 +683,7 @@ let camlp4_import_list =
      "parsing/asttypes.mli";
      "parsing/parsetree.mli";
      "typing/outcometree.mli";
+     "typing/oprint.ml";
      "myocamlbuild_config.ml";
      "utils/config.mlbuild"]
 ;;

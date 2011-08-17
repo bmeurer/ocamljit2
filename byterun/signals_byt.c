@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id$ */
+/* $Id: signals_byt.c 7904 2007-02-23 09:29:45Z xleroy $ */
 
 /* Signal handling, code specific to the bytecode interpreter */
 

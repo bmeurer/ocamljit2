@@ -9,7 +9,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id$ *)
+(* $Id: odoc_search.ml 9638 2010-03-08 16:54:13Z guesdon $ *)
 
 (** Research of elements through modules. *)
 
@@ -633,4 +633,4 @@ let find_section mods regexp =
     Res_section (_,t) -> t
   | _ -> assert false
 
-(* eof $Id$ *)
+(* eof $Id: odoc_search.ml 9638 2010-03-08 16:54:13Z guesdon $ *)

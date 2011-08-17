@@ -11,7 +11,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id$ *)
+(* $Id: string.ml 11043 2011-05-16 15:00:33Z doligez $ *)
 
 (* String operations *)
 
@@ -180,4 +180,4 @@ let rcontains_from s i c =
 
 type t = string
 
-let compare = Pervasives.compare
+let compare (x: t) (y: t) = Pervasives.compare x y

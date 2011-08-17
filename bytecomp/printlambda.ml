@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id$ *)
+(* $Id: printlambda.ml 10667 2010-09-02 13:29:21Z xclerc $ *)
 
 open Format
 open Asttypes
@@ -285,7 +285,7 @@ let rec lam ppf = function
        lam hi lam body
   | Lassign(id, expr) ->
       fprintf ppf "@[<2>(assign@ %a@ %a)@]" Ident.print id lam expr
-  | Lsend (k, met, obj, largs) ->
+  | Lsend (k, met, obj, largs, _) ->
       let args ppf largs =
         List.iter (fun l -> fprintf ppf "@ %a" lam l) largs in
       let kind =

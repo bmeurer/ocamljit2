@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id$ */
+/* $Id: channels.c 11030 2011-05-09 11:38:43Z doligez $ */
 
 #include <mlvalues.h>
 #include <alloc.h>
@@ -30,6 +30,7 @@ int win_CRT_fd_of_filedescr(value handle)
   } else {
     int fd = _open_osfhandle((long) Handle_val(handle), O_BINARY);
     if (fd == -1) uerror("channel_of_descr", Nothing);
+    CRT_fd_val(handle) = fd;
     return fd;
   }
 }

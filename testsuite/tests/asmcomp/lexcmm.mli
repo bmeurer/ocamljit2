@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: lexcmm.mli 2553 1999-11-17 18:59:06Z xleroy $ *)
+(* $Id: lexcmm.mli 10713 2010-10-08 11:53:19Z doligez $ *)
 
 val token: Lexing.lexbuf -> Parsecmm.token
 

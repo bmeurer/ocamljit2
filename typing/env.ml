@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id$ *)
+(* $Id: env.ml 11062 2011-06-01 22:23:56Z doligez $ *)
 
 (* Environment handling *)
 
@@ -869,4 +869,4 @@ let report_error ppf = function
   | Need_recursive_types(import, export) ->
       fprintf ppf
         "@[<hov>Unit %s imports from %s, which uses recursive types.@ %s@]"
-        import export "The compilation flag -rectypes is required"
+        export import "The compilation flag -rectypes is required"

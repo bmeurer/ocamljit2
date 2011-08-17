@@ -9,7 +9,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id$ *)
+(* $Id: odoc_types.mli 10867 2010-11-29 12:49:46Z xclerc $ *)
 
 (** Types for the information collected in comments. *)
 
@@ -108,6 +108,7 @@ type merge_option =
   | Merge_version (** Versions are concatenated. *)
   | Merge_see (** See references are concatenated. *)
   | Merge_since (** Since information are concatenated. *)
+  | Merge_before (** Before information are concatenated. *)
   | Merge_deprecated (** Deprecated information are concatenated. *)
   | Merge_param (** Information on each parameter is concatenated,
                     and all parameters are kept. *)

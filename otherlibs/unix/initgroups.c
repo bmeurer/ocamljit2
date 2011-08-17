@@ -11,7 +11,7 @@
 
 /* Contributed by Stephane Glondu <steph@glondu.net> */
 
-/* $Id$ */
+/* $Id: initgroups.c 9235 2009-04-16 07:23:35Z xleroy $ */
 
 #include <mlvalues.h>
 #include <alloc.h>

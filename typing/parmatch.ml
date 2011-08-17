@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id$ *)
+(* $Id: parmatch.ml 9547 2010-01-22 12:48:24Z doligez $ *)
 
 (* Detection of partial matches and unused match cases. *)
 

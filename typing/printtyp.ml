@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id$ *)
+(* $Id: printtyp.ml 10703 2010-10-02 08:58:23Z garrigue $ *)
 
 (* Printing functions *)
 
@@ -742,7 +742,7 @@ let tree_of_class_declaration id cl rs =
   reset ();
   List.iter add_alias params;
   prepare_class_type params cl.cty_type;
-  let sty = self_type cl.cty_type in
+  let sty = Ctype.self_type cl.cty_type in
   List.iter mark_loops params;
 
   List.iter check_name_of_type (List.map proxy params);
@@ -764,7 +764,7 @@ let tree_of_cltype_declaration id cl rs =
   reset ();
   List.iter add_alias params;
   prepare_class_type params cl.clty_type;
-  let sty = self_type cl.clty_type in
+  let sty = Ctype.self_type cl.clty_type in
   List.iter mark_loops params;
 
   List.iter check_name_of_type (List.map proxy params);

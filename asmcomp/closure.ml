@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id$ *)
+(* $Id: closure.ml 10667 2010-09-02 13:29:21Z xclerc $ *)
 
 (* Introduction of closures, uncurrying, recognition of direct calls *)
 
@@ -513,7 +513,7 @@ let rec close fenv cenv = function
       | ((ufunct, _), uargs) ->
           (Ugeneric_apply(ufunct, uargs, Debuginfo.none), Value_unknown)
       end
-  | Lsend(kind, met, obj, args) ->
+  | Lsend(kind, met, obj, args, _) ->
       let (umet, _) = close fenv cenv met in
       let (uobj, _) = close fenv cenv obj in
       (Usend(kind, umet, uobj, close_list fenv cenv args, Debuginfo.none),

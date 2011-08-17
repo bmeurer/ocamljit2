@@ -11,7 +11,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id$ *)
+(* $Id: callback.mli 7164 2005-10-25 18:34:07Z doligez $ *)
 
 (** Registering Caml values with the C runtime.
 

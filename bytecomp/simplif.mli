@@ -10,10 +10,17 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id$ *)
+(* $Id: simplif.mli 10667 2010-09-02 13:29:21Z xclerc $ *)
 
-(* Elimination of useless Llet(Alias) bindings *)
+(* Elimination of useless Llet(Alias) bindings.
+   Transformation of let-bound references into variables.
+   Simplification over staticraise/staticcatch constructs.
+   Generation of tail-call annotations if -annot is set. *)
 
 open Lambda
 
 val simplify_lambda: lambda -> lambda
+
+(* To be filled by asmcomp/selectgen.ml *)
+val is_tail_native_heuristic: (int -> bool) ref
+                          (* # arguments -> can tailcall *)

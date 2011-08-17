@@ -9,7 +9,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id$ *)
+(* $Id: odoc_text.ml 9638 2010-03-08 16:54:13Z guesdon $ *)
 
 exception Text_syntax of int * int * string (* line, char, string *)
 

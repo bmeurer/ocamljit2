@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: closure.mli 9547 2010-01-22 12:48:24Z doligez $ *)
+(* $Id$ *)
 
 (* Introduction of closures, uncurrying, recognition of direct calls *)
 

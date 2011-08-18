@@ -10,7 +10,7 @@
 #                                                                       #
 #########################################################################
 
-# $Id: Makefile 8955 2008-07-29 08:31:41Z xleroy $
+# $Id$
 
 UNIXDIR=../otherlibs/unix
 include Makefile.shared

@@ -11,7 +11,7 @@
 #                                                                       #
 #########################################################################
 
-# $Id: Makefile 10638 2010-07-28 13:19:44Z doligez $
+# $Id$
 
 include Makefile.common
 
@@ -61,7 +61,7 @@ clean::
 .S.o:
 	$(ASPP) -DSYS_$(SYSTEM) -o $@ $<
 
-.S.d.o:
+S.d.o:
 	$(ASPP) -DDEBUG -DSYS_$(SYSTEM) -o $@ $<
 
 .S.pic.o:

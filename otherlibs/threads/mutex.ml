@@ -11,7 +11,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: mutex.ml 9547 2010-01-22 12:48:24Z doligez $ *)
+(* $Id$ *)
 
 type t = { mutable locked: bool; mutable waiting: Thread.t list }
 

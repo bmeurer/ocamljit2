@@ -10,7 +10,7 @@
 ;(*                                                                     *)
 ;(***********************************************************************)
 
-;(* $Id: caml-types.el 10661 2010-08-30 10:16:22Z doligez $ *)
+;(* $Id$ *)
 
 ; An emacs-lisp complement to the "-annot" option of ocamlc and ocamlopt.
 

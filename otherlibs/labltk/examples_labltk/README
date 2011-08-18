@@ -1,4 +1,4 @@
-$Id: README 4745 2002-04-26 12:16:26Z furuse $
+$Id$
 
 Some examples for LablTk.
 They are written in classic mode, except testris.ml which uses label

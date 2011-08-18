@@ -11,7 +11,7 @@
 #                                                                       #
 #########################################################################
 
-# $Id: Makefile.mingw 10461 2010-05-25 10:00:39Z frisch $
+# $Id$
 
 # Configuration for Windows, Mingw compiler
 

@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: typedecl.mli 10669 2010-09-06 06:34:13Z garrigue $ *)
+(* $Id$ *)
 
 (* Typing of type definitions and primitive definitions *)
 

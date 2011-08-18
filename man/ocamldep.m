@@ -1,4 +1,4 @@
-\" $Id: ocamldep.m 10914 2011-01-04 10:33:49Z xclerc $
+\" $Id$
 
 .TH OCAMLDEP 1
 

@@ -9,7 +9,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: odoc_text.mli 9547 2010-01-22 12:48:24Z doligez $ *)
+(* $Id$ *)
 
 (** A module with a function to parse strings to obtain a [Odoc_types.text] value. *)
 

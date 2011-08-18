@@ -15,7 +15,7 @@
 (***********************************************************************)
 open Camltk
 
-let version = "$Id: frx_text.ml 9547 2010-01-22 12:48:24Z doligez $"
+let version = "$Id$"
 
 (*
  * convert an integer to an absolute index

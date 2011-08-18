@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: scheduling.ml 9547 2010-01-22 12:48:24Z doligez $ *)
+(* $Id$ *)
 
 (* Instruction scheduling for the Power PC *)
 

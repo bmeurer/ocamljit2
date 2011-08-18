@@ -8,7 +8,7 @@
 (*  under the terms of the Q Public License version 1.0.               *)
 (***********************************************************************)
 
-(* $Id: odoc_texi.ml 10480 2010-05-31 11:52:13Z guesdon $ *)
+(* $Id$ *)
 
 (** Generation of Texinfo documentation. *)
 

@@ -11,7 +11,7 @@
 
 /* Contributed by Stephane Glondu <steph@glondu.net> */
 
-/* $Id: initgroups.c 9220 2009-04-01 16:50:10Z xleroy $ */
+/* $Id$ */
 
 #include <errno.h>
 

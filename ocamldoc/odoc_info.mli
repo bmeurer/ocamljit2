@@ -9,7 +9,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: odoc_info.mli 11027 2011-05-05 11:28:57Z doligez $ *)
+(* $Id$ *)
 
 (** Interface to the information collected in source files. *)
 

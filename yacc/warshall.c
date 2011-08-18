@@ -12,7 +12,7 @@
 
 /* Based on public-domain code from Berkeley Yacc */
 
-/* $Id: warshall.c 3573 2001-07-12 12:54:24Z doligez $ */
+/* $Id$ */
 
 #include "defs.h"
 

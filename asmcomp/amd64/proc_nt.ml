@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: proc_nt.ml 9547 2010-01-22 12:48:24Z doligez $ *)
+(* $Id$ *)
 
 (* Description of the AMD64 processor with Win64 conventions *)
 

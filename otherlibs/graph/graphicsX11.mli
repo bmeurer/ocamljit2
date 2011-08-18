@@ -11,7 +11,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: graphicsX11.mli 9547 2010-01-22 12:48:24Z doligez $ *)
+(* $Id$ *)
 
 (** Additional graphics primitives for the X Windows system. *)
 

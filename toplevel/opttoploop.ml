@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: opttoploop.ml 10260 2010-04-13 10:44:25Z doligez $ *)
+(* $Id$ *)
 
 (* The interactive toplevel loop *)
 
@@ -412,7 +412,8 @@ let loop ppf =
   fprintf ppf "        Objective Caml version %s - native toplevel@.@." Config.version;
   initialize_toplevel_env ();
   let lb = Lexing.from_function refill_lexbuf in
-  Location.input_name := "";
+  Location.init lb "//toplevel//";
+  Location.input_name := "//toplevel//";
   Location.input_lexbuf := Some lb;
   Sys.catch_break true;
   load_ocamlinit ppf;

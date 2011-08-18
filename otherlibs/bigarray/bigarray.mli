@@ -11,7 +11,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: bigarray.mli 9153 2008-12-03 18:09:09Z doligez $ *)
+(* $Id$ *)
 
 (** Large, multi-dimensional, numerical arrays.
 

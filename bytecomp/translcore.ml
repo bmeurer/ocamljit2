@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: translcore.ml 10667 2010-09-02 13:29:21Z xclerc $ *)
+(* $Id$ *)
 
 (* Translation from typed abstract syntax to lambda terms,
    for the core language *)
@@ -531,14 +531,7 @@ let primitive_is_ccall = function
 (* Assertions *)
 
 let assert_failed loc =
-  (* [Location.get_pos_info] is too expensive *)
-  let fname = match loc.Location.loc_start.Lexing.pos_fname with
-              | "" -> !Location.input_name
-              | x -> x
-  in
-  let pos = loc.Location.loc_start in
-  let line = pos.Lexing.pos_lnum in
-  let char = pos.Lexing.pos_cnum - pos.Lexing.pos_bol in
+  let (fname, line, char) = Location.get_pos_info loc.Location.loc_start in
   Lprim(Praise, [Lprim(Pmakeblock(0, Immutable),
           [transl_path Predef.path_assert_failure;
            Lconst(Const_block(0,

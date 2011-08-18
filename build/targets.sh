@@ -10,7 +10,7 @@
 #                                                                       #
 #########################################################################
 
-# $Id: targets.sh 10856 2010-11-25 13:57:43Z xclerc $
+# $Id$
 
 . config/config.sh
 . build/otherlibs-targets.sh

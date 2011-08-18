@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: s-nt.h 4933 2002-06-18 13:01:53Z xleroy $ */
+/* $Id$ */
 
 /* Operating system dependencies, Intel x86 processors, Windows NT */
 

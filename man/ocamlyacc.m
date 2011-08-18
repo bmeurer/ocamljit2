@@ -1,4 +1,4 @@
-\" $Id: ocamlyacc.m 10444 2010-05-20 14:06:29Z doligez $
+\" $Id$
 .TH OCAMLYACC 1
 
 .SH NAME

@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: signals.c 9547 2010-01-22 12:48:24Z doligez $ */
+/* $Id$ */
 
 /* Signal handling, code common to the bytecode and native systems */
 

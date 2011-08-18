@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: selection.ml 10296 2010-04-22 12:51:06Z xleroy $ *)
+(* $Id$ *)
 
 (* Instruction selection for the Power PC processor *)
 

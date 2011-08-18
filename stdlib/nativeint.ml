@@ -11,7 +11,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: nativeint.ml 7818 2007-01-30 09:34:36Z xleroy $ *)
+(* $Id$ *)
 
 (* Module [Nativeint]: processor-native integers *)
 

@@ -14,7 +14,7 @@
 /*                                                                       */
 /*************************************************************************/
 
-/* $Id: camltk.h 10230 2010-04-03 06:43:51Z furuse $ */
+/* $Id$ */
 
 #if defined(_WIN32) && defined(CAML_DLL) && defined(IN_CAMLTKSUPPORT)
 #define CAMLTKextern CAMLexport

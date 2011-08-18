@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: loadprinter.ml 9547 2010-01-22 12:48:24Z doligez $ *)
+(* $Id$ *)
 
 (* Loading and installation of user-defined printer functions *)
 

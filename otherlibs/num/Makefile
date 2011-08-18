@@ -11,7 +11,7 @@
 #                                                                       #
 #########################################################################
 
-# $Id: Makefile 9623 2010-02-09 14:17:20Z doligez $
+# $Id$
 
 # Makefile for the "num" (exact rational arithmetic) library
 

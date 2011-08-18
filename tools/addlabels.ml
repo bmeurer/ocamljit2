@@ -1,4 +1,4 @@
-(* $Id: addlabels.ml 10250 2010-04-08 03:58:41Z garrigue $ *)
+(* $Id$ *)
 
 open StdLabels
 open Asttypes

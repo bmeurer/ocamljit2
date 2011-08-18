@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: translcore.mli 8232 2007-05-16 08:21:41Z doligez $ *)
+(* $Id$ *)
 
 (* Translation from typed abstract syntax to lambda terms,
    for the core language *)

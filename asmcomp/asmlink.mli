@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: asmlink.mli 10424 2010-05-19 11:29:38Z xleroy $ *)
+(* $Id$ *)
 
 (* Link a set of .cmx/.o files and produce an executable or a plugin *)
 

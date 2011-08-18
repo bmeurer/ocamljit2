@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: asttypes.mli 10250 2010-04-08 03:58:41Z garrigue $ *)
+(* $Id$ *)
 
 (* Auxiliary a.s.t. types used by parsetree and typedtree. *)
 

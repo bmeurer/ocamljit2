@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: emitcode.ml 9547 2010-01-22 12:48:24Z doligez $ *)
+(* $Id$ *)
 
 (* Generation of bytecode + relocation information *)
 

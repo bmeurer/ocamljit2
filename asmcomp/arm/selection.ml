@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: selection.ml 10295 2010-04-22 12:39:40Z xleroy $ *)
+(* $Id$ *)
 
 (* Instruction selection for the ARM processor *)
 

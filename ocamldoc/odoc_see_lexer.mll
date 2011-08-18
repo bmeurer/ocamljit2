@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: odoc_see_lexer.mll 9547 2010-01-22 12:48:24Z doligez $ *)
+(* $Id$ *)
 
 let print_DEBUG2 s = print_string s ; print_newline ()
 

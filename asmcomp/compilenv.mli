@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: compilenv.mli 10424 2010-05-19 11:29:38Z xleroy $ *)
+(* $Id$ *)
 
 (* Compilation environments for compilation units *)
 
@@ -53,7 +53,7 @@ val need_send_fun: int -> unit
 
 
 val read_unit_info: string -> unit_infos * Digest.t
-        (* Read infos and CRC from a [.cmx] file. *)
+        (* Read infos and MD5 from a [.cmx] file. *)
 val write_unit_info: unit_infos -> string -> unit
         (* Save the given infos in the given file *)
 val save_unit_info: string -> unit

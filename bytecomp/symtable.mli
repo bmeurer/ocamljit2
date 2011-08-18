@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: symtable.mli 7422 2006-05-11 15:50:53Z xleroy $ *)
+(* $Id$ *)
 
 (* Assign locations and numbers to globals and primitives *)
 

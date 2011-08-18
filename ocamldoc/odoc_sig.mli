@@ -9,7 +9,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: odoc_sig.mli 9547 2010-01-22 12:48:24Z doligez $ *)
+(* $Id$ *)
 
 (** The module for analysing a signature and source code and creating modules, classes, ..., elements.*)
 

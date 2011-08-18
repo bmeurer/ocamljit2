@@ -1,5 +1,5 @@
 #!/bin/sh
-# $Id: world.byte.sh 10443 2010-05-20 09:44:25Z doligez $
+# $Id$
 set -e
 cd `dirname $0`/..
 . build/targets.sh

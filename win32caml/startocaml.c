@@ -15,7 +15,7 @@
 /* Began 14 Sept 2003 - watford@uiuc.edu                               */
 /***********************************************************************/
 
-/* $Id: startocaml.c 6824 2005-03-24 17:20:54Z doligez $ */
+/* $Id$ */
 
 #include <windows.h>
 #include <stdio.h>

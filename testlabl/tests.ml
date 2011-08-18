@@ -1,4 +1,4 @@
-(* $Id: tests.ml 2745 2000-01-07 16:47:25Z doligez $ *)
+(* $Id$ *)
 
 let f1 = function `a x -> x=1 | `b -> true
 let f2 = function `a x -> x | `b -> true

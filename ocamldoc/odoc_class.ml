@@ -9,7 +9,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: odoc_class.ml 9547 2010-01-22 12:48:24Z doligez $ *)
+(* $Id$ *)
 
 (** Representation and manipulation of classes and class types.*)
 
@@ -250,4 +250,4 @@ let class_type_parameter_text_by_name clt label =
           None
 
 
-(* eof $Id: odoc_class.ml 9547 2010-01-22 12:48:24Z doligez $ *)
+(* eof $Id$ *)

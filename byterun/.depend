@@ -1,4 +1,5 @@
 jit_rt_amd64.o: jit_rt_amd64.S ../config/m.h ../config/s.h
+jit_rt_i386.o: jit_rt_i386.S ../config/m.h ../config/s.h
 alloc.o: alloc.c alloc.h compatibility.h misc.h config.h ../config/m.h \
   ../config/s.h mlvalues.h custom.h major_gc.h freelist.h memory.h gc.h \
   minor_gc.h stacks.h

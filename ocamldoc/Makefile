@@ -9,7 +9,7 @@
 #(*                                                                     *)
 #(***********************************************************************)
 
-# $Id: Makefile 11020 2011-05-02 13:14:14Z guesdon $
+# $Id$
 
 include ../config/Makefile
 
@@ -140,7 +140,6 @@ OCAMLCMOFILES=$(OCAMLSRCDIR)/parsing/printast.cmo \
 	$(OCAMLSRCDIR)/utils/warnings.cmo \
 	$(OCAMLSRCDIR)/utils/ccomp.cmo \
 	$(OCAMLSRCDIR)/utils/consistbl.cmo \
-	$(OCAMLSRCDIR)/parsing/linenum.cmo\
 	$(OCAMLSRCDIR)/parsing/location.cmo\
 	$(OCAMLSRCDIR)/parsing/longident.cmo \
 	$(OCAMLSRCDIR)/parsing/syntaxerr.cmo \

@@ -11,7 +11,7 @@
 ;
 ;*********************************************************************
 
-; $Id: amd64nt.asm 10862 2010-11-27 17:19:24Z xleroy $
+; $Id$
 
 ; Asm part of the runtime system, AMD64 processor, Intel syntax
 

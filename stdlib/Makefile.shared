@@ -11,7 +11,7 @@
 #                                                                       #
 #########################################################################
 
-# $Id: Makefile.shared 10448 2010-05-21 11:28:21Z doligez $
+# $Id$
 
 include ../config/Makefile
 RUNTIME=../boot/ocamlrun

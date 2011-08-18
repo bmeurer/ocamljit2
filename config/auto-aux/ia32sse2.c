@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: ia32sse2.c 6824 2005-03-24 17:20:54Z doligez $ */
+/* $Id$ */
 
 /* Test whether IA32 assembler supports SSE2 instructions */
 

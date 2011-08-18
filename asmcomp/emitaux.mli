@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: emitaux.mli 9540 2010-01-20 16:26:46Z doligez $ *)
+(* $Id$ *)
 
 (* Common functions for emitting assembly code *)
 

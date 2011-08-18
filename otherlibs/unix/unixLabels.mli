@@ -11,7 +11,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: unixLabels.mli 10971 2011-03-06 16:15:34Z weis $ *)
+(* $Id$ *)
 
 (** Interface to the Unix system.
    To use as replacement to default {!Unix} module,

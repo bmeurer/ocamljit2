@@ -1,4 +1,4 @@
-(* $Id: printers.ml 5492 2003-04-03 02:16:20Z garrigue $ *)
+(* $Id$ *)
 
 open Types
 

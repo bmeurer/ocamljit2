@@ -11,7 +11,7 @@
 #                                                                       #
 #########################################################################
 
-# $Id: Makefile.nt 8754 2008-01-04 15:01:48Z xleroy $
+# $Id$
 
 LIBNAME=bigarray
 EXTRACFLAGS=-I../win32unix -DIN_OCAML_BIGARRAY -DCAML_NAME_SPACE

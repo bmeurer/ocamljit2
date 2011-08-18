@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: odoc_text_lexer.mll 10584 2010-06-16 11:38:22Z guesdon $ *)
+(* $Id$ *)
 
 (** The lexer for string to build text structures. *)
 

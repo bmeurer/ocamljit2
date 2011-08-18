@@ -1,5 +1,5 @@
 #!/bin/sh
-# $Id: camlp4-mkCamlp4Ast.sh 11040 2011-05-13 08:37:04Z doligez $
+# $Id$
 set -e
 cd `dirname $0`/..
 

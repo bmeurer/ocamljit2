@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: simplif.mli 10667 2010-09-02 13:29:21Z xclerc $ *)
+(* $Id$ *)
 
 (* Elimination of useless Llet(Alias) bindings.
    Transformation of let-bound references into variables.

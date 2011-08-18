@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: typetexp.mli 10422 2010-05-18 17:25:02Z frisch $ *)
+(* $Id$ *)
 
 (* Typechecking of type expressions for the core language *)
 

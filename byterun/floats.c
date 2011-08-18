@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: floats.c 9547 2010-01-22 12:48:24Z doligez $ */
+/* $Id$ */
 
 /* The interface of this file is in "mlvalues.h" and "alloc.h" */
 

@@ -15,7 +15,7 @@
 (***********************************************************************)
 open Camltk
 
-let version = "$Id: frx_listbox.ml 9547 2010-01-22 12:48:24Z doligez $"
+let version = "$Id$"
 
 (*
  * Link a scrollbar and a listbox

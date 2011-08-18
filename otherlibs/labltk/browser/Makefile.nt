@@ -1,4 +1,4 @@
-# $Id: Makefile.nt 9153 2008-12-03 18:09:09Z doligez $
+# $Id$
 
 OTHERSLIB=-I $(OTHERS)/win32unix -I $(OTHERS)/str -I $(OTHERS)/systhreads
 

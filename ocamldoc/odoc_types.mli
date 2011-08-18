@@ -9,7 +9,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: odoc_types.mli 10867 2010-11-29 12:49:46Z xclerc $ *)
+(* $Id$ *)
 
 (** Types for the information collected in comments. *)
 

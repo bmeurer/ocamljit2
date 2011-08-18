@@ -9,7 +9,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: odoc_analyse.ml 10355 2010-05-03 15:06:17Z guesdon $ *)
+(* $Id$ *)
 
 (** Analysis of source files. This module is strongly inspired from
     driver/main.ml :-) *)

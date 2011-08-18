@@ -7,7 +7,7 @@ ocamlc -nostdlib -I ../../stdlib \
   t301-object.ml -o t301-object.byte
 
 ***)
-(* $Id: t301-object.ml 10713 2010-10-08 11:53:19Z doligez $ *)
+(* $Id$ *)
 
 
 class c = object (self)
@@ -26,4 +26,4 @@ let (x,y,z) = f () in
   if y <> 2 then raise Not_found;
   if z <> 4 then raise Not_found;;
 
-(**** eof $Id: t301-object.ml 10713 2010-10-08 11:53:19Z doligez $ *)
+(**** eof $Id$ *)

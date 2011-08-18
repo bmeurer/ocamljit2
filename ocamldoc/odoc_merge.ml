@@ -9,7 +9,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: odoc_merge.ml 10871 2010-11-30 08:08:24Z xclerc $ *)
+(* $Id$ *)
 
 (** Merge of information from [.ml] and [.mli] for a module.*)
 

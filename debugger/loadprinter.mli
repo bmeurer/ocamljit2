@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: loadprinter.mli 2919 2000-03-07 18:22:19Z weis $ *)
+(* $Id$ *)
 
 (* Loading and installation of user-defined printer functions *)
 

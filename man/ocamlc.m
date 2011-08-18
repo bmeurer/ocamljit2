@@ -1,4 +1,4 @@
-\" $Id: ocamlc.m 10450 2010-05-21 12:00:49Z doligez $
+\" $Id$
 
 .TH OCAMLC 1
 

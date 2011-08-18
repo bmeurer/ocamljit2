@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: includemod.mli 10447 2010-05-21 03:36:52Z garrigue $ *)
+(* $Id$ *)
 
 (* Inclusion checks for the module language *)
 

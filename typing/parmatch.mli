@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: parmatch.mli 8906 2008-07-09 13:03:38Z mauny $ *)
+(* $Id$ *)
 
 (* Detection of partial matches and unused match cases. *)
 open Types

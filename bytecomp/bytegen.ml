@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: bytegen.ml 10667 2010-09-02 13:29:21Z xclerc $ *)
+(* $Id$ *)
 
 (*  bytegen.ml : translation of lambda terms to lists of instructions. *)
 

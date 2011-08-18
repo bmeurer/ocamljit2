@@ -11,7 +11,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: obj.mli 10457 2010-05-21 18:30:12Z doligez $ *)
+(* $Id$ *)
 
 (** Operations on internal representations of values.
 

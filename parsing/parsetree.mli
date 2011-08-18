@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: parsetree.mli 10263 2010-04-17 14:45:12Z garrigue $ *)
+(* $Id$ *)
 
 (* Abstract syntax tree produced by parsing *)
 

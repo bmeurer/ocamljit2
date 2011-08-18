@@ -11,7 +11,7 @@
 |*                                                                     *
 |***********************************************************************
 
-| $Id: m68k.S 6050 2004-01-03 12:51:20Z doligez $
+| $Id$
 
 | Asm part of the runtime system, Motorola 68k processor
 

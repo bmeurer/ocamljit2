@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: bytelink.ml 10695 2010-09-29 16:46:54Z doligez $ *)
+(* $Id$ *)
 
 (* Link a set of .cmo files and produce a bytecode executable. *)
 

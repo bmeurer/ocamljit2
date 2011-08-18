@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: mach.mli 9547 2010-01-22 12:48:24Z doligez $ *)
+(* $Id$ *)
 
 (* Representation of machine code by sequences of pseudoinstructions *)
 

@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: image.c 6171 2004-03-24 15:02:06Z starynke $ */
+/* $Id$ */
 
 #include "libgraph.h"
 #include "image.h"
@@ -104,4 +104,4 @@ value caml_gr_draw_image(value im, value vx, value vy)
   return Val_unit;
 }
 
-/* eof $Id: image.c 6171 2004-03-24 15:02:06Z starynke $ */
+/* eof $Id$ */

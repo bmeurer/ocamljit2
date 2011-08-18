@@ -12,7 +12,7 @@
 
 /* Based on public-domain code from Berkeley Yacc */
 
-/* $Id: main.c 10444 2010-05-20 14:06:29Z doligez $ */
+/* $Id$ */
 
 #include <signal.h>
 #include <string.h>

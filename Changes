@@ -3,10 +3,14 @@ Objective Caml 3.12.2:
 
 Bug fixes:
 - problem with printing of string literals in camlp4 (reported on caml-list)
+- PR#1643: functions of the Lazy module whose named started with 'lazy_' have
+           been deprecated, and new ones without the prefix added
 - PR#4697: Unix.putenv leaks memory on failure
 - PR#4705: camlp4 does not allow to define types with `True or `False
 - PR#4937: camlp4 incorrectly handles optional arguments if 'option' is redefined
 - PR#5024: camlp4r now handles underscores in irrefutable patern matching of records
+- PR#5211: updated Genlex documentation to state that camlp4 is mandatory for 'parser'
+           keyword and associated notation
 - PR#5238, PR#5277: Sys_error when getting error location
 - PR#5301: camlp4r and exception equal to another one with parameters
 - PR#5316: objinfo now shows ccopts/ccobjs/force_link when applicable
@@ -15,6 +19,11 @@ Bug fixes:
 - PR#5331: ocamlmktop is not always a shell script
 - PR#5335: Unix.environment segfaults after a call to clearenv
 - PR#5344: some predifined exceptions need special printing
+
+Feature wishes:
+- PR#4444: new String.trim function, removing leading and trailing whistespace
+- PR#4898: new Sys.big_endian boolean for machine endianness
+- PR#5236: new '%revapply' primitive with the semantics 'revapply x f = f x'
 
 Objective Caml 3.12.1:
 ----------------------

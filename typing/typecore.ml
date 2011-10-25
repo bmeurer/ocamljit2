@@ -774,7 +774,14 @@ let type_format loc fmt =
         else incomplete_format fmt else
       match fmt.[i] with
       | '%' -> scan_opts i (i + 1)
+      | '@' -> skip_indication (i + 1)
       | _ -> scan_format (i + 1)
+    and skip_indication i =
+      if i >= len then incomplete_format fmt else
+      match fmt.[i] with
+      | '@' | '%' -> scan_format (i + 1)
+      | _ -> scan_format i
+
     and scan_opts i j =
       if j >= len then incomplete_format fmt else
       match fmt.[j] with
@@ -825,12 +832,9 @@ let type_format loc fmt =
         if j >= len then incomplete_format fmt else
         match fmt.[j] with
         | '%' | '!' | ',' -> scan_format (j + 1)
-        | 's' | 'S' ->
-	    let j = if j + 2 < len && fmt.[j + 1] = '@' then j + 2 else j in
-	    conversion j Predef.type_string
+        | 's' | 'S' -> conversion j Predef.type_string
         | '[' ->
           let j = range_closing_index fmt j in
-	    let j = if j + 2 < len && fmt.[j + 1] = '@' then j + 2 else j in
           conversion j Predef.type_string
         | 'c' | 'C' -> conversion j Predef.type_char
         | 'd' | 'i' | 'o' | 'x' | 'X' | 'u' | 'N' ->
